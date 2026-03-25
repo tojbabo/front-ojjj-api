@@ -1,225 +1,118 @@
+'use client';
+
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import type { LoginRequest } from "@/domains/auth/api/authApi";
+import { loginUseCase } from "@/domains/auth/usecases/loginUseCase";
+
 export default function LoginPage() {
-    return (
-      <>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
-  
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-          :root {
-            --bg: #0e0e0e;
-            --surface: #181818;
-            --border: #2a2a2a;
-            --text: #f0ece4;
-            --muted: #6b6560;
-            --accent: #c9a96e;
-          }
-  
-          body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-  
-          .wrapper {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            width: 900px;
-            min-height: 560px;
-            border: 1px solid var(--border);
-          }
-  
-          /* 왼쪽 패널 */
-          .left {
-            background: var(--surface);
-            padding: 60px 52px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border-right: 1px solid var(--border);
-            position: relative;
-            overflow: hidden;
-          }
-  
-          .left::before {
-            content: '';
-            position: absolute;
-            top: -80px; right: -80px;
-            width: 260px; height: 260px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(201,169,110,0.12), transparent 70%);
-            pointer-events: none;
-          }
-  
-          .logo {
-            font-family: 'DM Serif Display', serif;
-            font-size: 22px;
-            letter-spacing: 0.04em;
-            color: var(--accent);
-          }
-  
-          .tagline {
-            font-family: 'DM Serif Display', serif;
-            font-size: 36px;
-            line-height: 1.25;
-            color: var(--text);
-          }
-  
-          .tagline em {
-            font-style: italic;
-            color: var(--accent);
-          }
-  
-          .caption {
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.7;
-          }
-  
-          /* 오른쪽 패널 */
-          .right {
-            background: var(--bg);
-            padding: 60px 52px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 28px;
-          }
-  
-          .right h2 {
-            font-family: 'DM Serif Display', serif;
-            font-size: 26px;
-            font-weight: 400;
-          }
-  
-          .field {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-  
-          label {
-            font-size: 11px;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--muted);
-          }
-  
-          input {
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--border);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
-            padding: 10px 0;
-            outline: none;
-            transition: border-color 0.2s;
-          }
-  
-          input:focus {
-            border-bottom-color: var(--accent);
-          }
-  
-          input::placeholder {
-            color: #3a3a3a;
-          }
-  
-          .forgot {
-            font-size: 12px;
-            color: var(--muted);
-            text-decoration: none;
-            align-self: flex-end;
-            margin-top: -16px;
-            transition: color 0.2s;
-          }
-  
-          .forgot:hover { color: var(--accent); }
-  
-          .btn {
-            background: var(--accent);
-            color: #0e0e0e;
-            border: none;
-            padding: 14px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: opacity 0.2s;
-          }
-  
-          .btn:hover { opacity: 0.85; }
-  
-          .divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--muted);
-            font-size: 11px;
-            letter-spacing: 0.08em;
-          }
-  
-          .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-          }
-  
-          .signup {
-            font-size: 13px;
-            color: var(--muted);
-            text-align: center;
-          }
-  
-          .signup a {
-            color: var(--accent);
-            text-decoration: none;
-          }
-        `}</style>
-  
-        <div className="wrapper">
-          <div className="left">
-            <div className="logo">PORTAL</div>
-            <div className="tagline">
-              당신의 하루를<br /><em>더 스마트하게</em>
-            </div>
-            <p className="caption">
-              뉴스, 검색, 커뮤니티까지.<br />
-              필요한 모든 것이 한 곳에.
-            </p>
-          </div>
-  
-          <div className="right">
-            <h2>로그인</h2>
-  
-            <div className="field">
-              <label>이메일</label>
-              <input type="email" placeholder="hello@example.com" />
-            </div>
-  
-            <div className="field">
-              <label>비밀번호</label>
-              <input type="password" placeholder="••••••••" />
-            </div>
-  
-            <a href="#" className="forgot">비밀번호를 잊으셨나요?</a>
-  
-            <button className="btn">로그인</button>
-  
-            <div className="divider">OR</div>
-  
-            <p className="signup">
-              계정이 없으신가요? <a href="#">회원가입</a>
-            </p>
-          </div>
-        </div>
-      </>
-    );
+  const router = useRouter();
+  const [request, setRequest] = useState<LoginRequest>({
+    id: "",
+    pw: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await loginUseCase(request);
+      const token = res.accessToken ?? res.token;
+      if (token) {
+        window.localStorage.setItem("accessToken", String(token));
+      }
+      router.push("/");
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "로그인에 실패했습니다.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
+
+  return (
+    <div className="w-full rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">로그인</h2>
+          <p className="mt-1 text-sm text-muted">
+            개발자 센터에 로그인하고 맞춤 문서를 이용하세요.
+          </p>
+        </div>
+        <span className="rounded-full bg-[color:var(--brand-weak)] px-2 py-1 text-xs font-medium text-foreground">
+          OJ Auth
+        </span>
+      </div>
+
+      <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
+        <div className="grid gap-2">
+          <label htmlFor="id" className="text-xs font-medium text-muted">
+            아이디
+          </label>
+          <input
+            id="id"
+            name="id"
+            type="text"
+            inputMode="email"
+            autoComplete="username"
+            placeholder="you@example.com"
+            value={request.id}
+            onChange={(e) => setRequest((prev) => ({ ...prev, id: e.target.value }))}
+            disabled={loading}
+            className="h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none placeholder:text-muted focus:border-[color:var(--brand)] disabled:opacity-70"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="pw" className="text-xs font-medium text-muted">
+            비밀번호
+          </label>
+          <input
+            id="pw"
+            name="pw"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={request.pw}
+            onChange={(e) => setRequest((prev) => ({ ...prev, pw: e.target.value }))}
+            disabled={loading}
+            className="h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none placeholder:text-muted focus:border-[color:var(--brand)] disabled:opacity-70"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <a href="#" className="text-sm text-muted hover:text-foreground">
+            비밀번호를 잊으셨나요?
+          </a>
+          <span className="text-xs text-muted">로그인 요청</span>
+        </div>
+
+        {errorMessage ? (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="inline-flex h-11 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-sm font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-70"
+        >
+          {loading ? "로그인 중..." : "로그인"}
+        </button>
+      </form>
+
+      <div className="mt-5 border-t border-border pt-5 text-center text-sm text-muted">
+        계정이 없으신가요?{" "}
+        <a href="#" className="text-foreground hover:text-foreground/80">
+          회원가입
+        </a>
+      </div>
+    </div>
+  );
+}
