@@ -3,33 +3,44 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { LoginRequest } from "@/domains/auth/api/authApi";
-import { loginUseCase } from "@/domains/auth/usecases/loginUseCase";
+import { joinUseCase } from "@/domains/auth/usecases/joinUseCase";
 
-export default function LoginPage() {
+const EMAIL_RE =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export default function SignupForm() {
   const router = useRouter();
-  const [request, setRequest] = useState<LoginRequest>({
-    id: "",
-    pw: "",
-  });
+  const [id, setId] = useState("");
+  const [pw, setPw] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage(null);
 
+    const trimmedId = id.trim();
+    if (!EMAIL_RE.test(trimmedId)) {
+      setErrorMessage("아이디는 이메일 형식이어야 합니다.");
+      return;
+    }
+    if (pw !== pwConfirm) {
+      setErrorMessage("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+      return;
+    }
+    if (!pw) {
+      setErrorMessage("비밀번호를 입력해 주세요.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await loginUseCase(request);
-      const token = res.accessToken ?? res.token;
-      if (token) {
-        window.localStorage.setItem("accessToken", String(token));
-      }
-      router.push("/");
+      await joinUseCase({ id: trimmedId, pw });
+      router.push("/auth");
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "로그인에 실패했습니다.",
+        err instanceof Error ? err.message : "회원가입에 실패했습니다.",
       );
     } finally {
       setLoading(false);
@@ -40,9 +51,9 @@ export default function LoginPage() {
     <div className="w-full rounded-3xl border border-border bg-card p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">로그인</h2>
+          <h2 className="text-xl font-semibold tracking-tight">회원가입</h2>
           <p className="mt-1 text-sm text-muted">
-            개발자 센터에 로그인하고 맞춤 문서를 이용하세요.
+            이메일과 비밀번호로 계정을 만듭니다.
           </p>
         </div>
         <span className="rounded-full bg-[color:var(--brand-weak)] px-2 py-1 text-xs font-medium text-foreground">
@@ -52,45 +63,58 @@ export default function LoginPage() {
 
       <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
         <div className="grid gap-2">
-          <label htmlFor="id" className="text-xs font-medium text-muted">
-            아이디
+          <label htmlFor="join-id" className="text-xs font-medium text-muted">
+            아이디 (이메일)
           </label>
           <input
-            id="id"
+            id="join-id"
             name="id"
-            type="text"
+            type="email"
             inputMode="email"
-            autoComplete="username"
+            autoComplete="email"
             placeholder="you@example.com"
-            value={request.id}
-            onChange={(e) => setRequest((prev) => ({ ...prev, id: e.target.value }))}
+            value={id}
+            onChange={(e) => setId(e.target.value)}
             disabled={loading}
             className="h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none placeholder:text-muted focus:border-[color:var(--brand)] disabled:opacity-70"
           />
         </div>
 
         <div className="grid gap-2">
-          <label htmlFor="pw" className="text-xs font-medium text-muted">
+          <label htmlFor="join-pw" className="text-xs font-medium text-muted">
             비밀번호
           </label>
           <input
-            id="pw"
+            id="join-pw"
             name="pw"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             placeholder="••••••••"
-            value={request.pw}
-            onChange={(e) => setRequest((prev) => ({ ...prev, pw: e.target.value }))}
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
             disabled={loading}
             className="h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none placeholder:text-muted focus:border-[color:var(--brand)] disabled:opacity-70"
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <a href="#" className="text-sm text-muted hover:text-foreground">
-            비밀번호를 잊으셨나요?
-          </a>
-          <span className="text-xs text-muted">로그인 요청</span>
+        <div className="grid gap-2">
+          <label
+            htmlFor="join-pw-confirm"
+            className="text-xs font-medium text-muted"
+          >
+            비밀번호 확인
+          </label>
+          <input
+            id="join-pw-confirm"
+            name="pwConfirm"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            value={pwConfirm}
+            onChange={(e) => setPwConfirm(e.target.value)}
+            disabled={loading}
+            className="h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none placeholder:text-muted focus:border-[color:var(--brand)] disabled:opacity-70"
+          />
         </div>
 
         {errorMessage ? (
@@ -104,17 +128,17 @@ export default function LoginPage() {
           disabled={loading}
           className="inline-flex h-11 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-sm font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-70"
         >
-          {loading ? "로그인 중..." : "로그인"}
+          {loading ? "처리 중..." : "회원가입 요청"}
         </button>
       </form>
 
       <div className="mt-5 border-t border-border pt-5 text-center text-sm text-muted">
-        계정이 없으신가요?{" "}
+        이미 계정이 있으신가요?{" "}
         <Link
-          href="/auth/join"
+          href="/auth"
           className="text-foreground hover:text-foreground/80"
         >
-          회원가입
+          로그인
         </Link>
       </div>
     </div>
