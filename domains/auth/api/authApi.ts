@@ -45,12 +45,19 @@ export async function loginApi(request: LoginRequest): Promise<LoginResponse> {
   return (await res.json()) as LoginResponse;
 }
 
+export type JoinRequest = {
+  id: string;
+  pw: string;
+};
+
 export type JoinResponse = {
   message?: string;
+  shorttoken?: string;
+  longtoken?: string;
   [key: string]: unknown;
 };
 
-export async function joinApi(request: {id:string, pw:string}): Promise<JoinResponse> {
+export async function joinApi(request: JoinRequest): Promise<JoinResponse> {
   const res = await fetch(`${API_BASE_URL}${JOIN_PATH}`, {
     method: "POST",
     headers: {
@@ -62,12 +69,13 @@ export async function joinApi(request: {id:string, pw:string}): Promise<JoinResp
     }),
   });
 
+  const payload = (await res
+    .json()
+    .catch(() => ({ status: res.status, ok: false }))) as JoinResponse;
+
   if (!res.ok) {
-    const payload = await res
-      .json()
-      .catch(() => ({ status: res.status, ok: false }));
     throw new Error(getErrorMessage(payload, "회원가입에 실패했습니다."));
   }
 
-  return (await res.json().catch(() => ({}))) as JoinResponse;
+  return payload;
 }

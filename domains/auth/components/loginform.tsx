@@ -21,11 +21,7 @@ export default function LoginPage() {
     setErrorMessage(null);
 
     try {
-      const res = await loginUseCase(request);
-      const token = res.accessToken ?? res.token;
-      if (token) {
-        window.localStorage.setItem("accessToken", String(token));
-      }
+      await loginUseCase(request);
       router.push("/");
     } catch (err) {
       setErrorMessage(
