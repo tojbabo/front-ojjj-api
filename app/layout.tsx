@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import HeaderAuthButton from "@/app/components/HeaderAuthButton";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -117,12 +118,7 @@ export default function RootLayout({
                 >
                   콘솔
                 </a>
-                <Link
-                  className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"
-                  href="/auth"
-                >
-                  로그인
-                </Link>
+                <HeaderAuthButton />
               </div>
             </div>
           </header>

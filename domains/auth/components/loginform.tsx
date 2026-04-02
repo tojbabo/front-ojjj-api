@@ -21,13 +21,20 @@ export default function LoginPage() {
     setErrorMessage(null);
 
     try {
-      await loginUseCase(request);
-      router.push("/");
+      const response = await loginUseCase(request);
+      
+      if(response == 1){
+        router.push("/user");
+      }
+      if(response == 0){
+        setErrorMessage("로그인에 실패했습니다.");
+      }
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "로그인에 실패했습니다.",
       );
-    } finally {
+    }
+    finally{
       setLoading(false);
     }
   }
