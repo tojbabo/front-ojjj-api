@@ -7,7 +7,10 @@ export async function loginUseCase(
   request: LoginRequest,
 ): Promise<number> {
   const response = await loginApi(request);
-  const accessToken = response.accesstoken ?? response.token;
+  const accessToken =
+    response.accessToken ??
+    (response as { accesstoken?: string }).accesstoken ??
+    response.token;
 
   if (accessToken) {
     useAuthStore.getState().setAccessToken(String(accessToken));

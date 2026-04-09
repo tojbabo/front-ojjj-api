@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { LoginRequest } from "@/domains/auth/api/authApi";
+import { safeNextPath } from "@/domains/auth/lib/safeNextPath";
 import { loginUseCase } from "@/domains/auth/usecases/loginUseCase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [request, setRequest] = useState<LoginRequest>({
     id: "",
     pw: "",
@@ -22,9 +24,8 @@ export default function LoginPage() {
 
     try {
       const response = await loginUseCase(request);
-      
-      if(response == 1){
-        router.push("/user");
+      if (response === 1) {
+        router.push(safeNextPath(searchParams.get("next")));
       }
       if(response == 0){
         setErrorMessage("로그인에 실패했습니다.");
@@ -114,7 +115,7 @@ export default function LoginPage() {
       <div className="mt-5 border-t border-border pt-5 text-center text-sm text-muted">
         계정이 없으신가요?{" "}
         <Link
-          href="/auth/join"
+          href="/login/join"
           className="text-foreground hover:text-foreground/80"
         >
           회원가입

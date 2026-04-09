@@ -13,6 +13,7 @@ export type LoginResponse = {
 const API_BASE_URL = "http://localhost:3000";
 const LOGIN_PATH = "/api/auth/login";
 const JOIN_PATH = "/api/auth/join";
+const SESSION_CHECK_PATH = "/api/user/me";
 
 function getErrorMessage(payload: unknown, fallback: string) {
   if (!payload || typeof payload !== "object") return fallback;
@@ -26,6 +27,7 @@ function getErrorMessage(payload: unknown, fallback: string) {
 export async function loginApi(request: LoginRequest): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE_URL}${LOGIN_PATH}`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -52,7 +54,7 @@ export type JoinRequest = {
 
 export type JoinResponse = {
   message?: string;
-  shorttoken?: string;
+  accesstoken?: string;
   longtoken?: string;
   [key: string]: unknown;
 };
@@ -60,6 +62,7 @@ export type JoinResponse = {
 export async function joinApi(request: JoinRequest): Promise<JoinResponse> {
   const res = await fetch(`${API_BASE_URL}${JOIN_PATH}`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -78,4 +81,20 @@ export async function joinApi(request: JoinRequest): Promise<JoinResponse> {
   }
 
   return payload;
+}
+
+export async function logoutApi(): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  }).catch(() => undefined);
+}
+
+export async function hasRefreshSessionApi(): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}${SESSION_CHECK_PATH}`, {
+    method: "GET",
+    credentials: "include",
+  }).catch(() => null);
+
+  return Boolean(res?.ok);
 }

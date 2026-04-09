@@ -1,5 +1,5 @@
-import LoginPage from "@/domains/auth/components/loginform"
-
+import { Suspense } from "react";
+import LoginPage from "@/domains/auth/components/loginform";
 function CheckIcon() {
   return (
     <span
@@ -70,7 +70,15 @@ export default function Page() {
           </div>
 
           <div className="flex items-center justify-center">
-            <LoginPage />
+            <Suspense
+              fallback={
+                <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 text-center text-sm text-muted shadow-sm">
+                  로그인 폼을 불러오는 중…
+                </div>
+              }
+            >
+              <LoginPage />
+            </Suspense>
           </div>
         </div>
       </section>

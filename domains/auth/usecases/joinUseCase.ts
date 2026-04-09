@@ -6,10 +6,10 @@ export async function joinUseCase(
   request: JoinRequest,
 ): Promise<JoinResponse> {
   const response = await joinApi(request);
-  const shortToken = response.shorttoken;
+  const accesstoken = response.accesstoken;
 
-  if (shortToken) {
-    useAuthStore.getState().setAccessToken(String(shortToken));
+  if (accesstoken) {
+    useAuthStore.getState().setAccessToken(String(accesstoken));
   }
 
   return response;

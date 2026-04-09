@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { hasRefreshSessionApi } from "@/domains/auth/api/authApi";
 
 type UserTab = "status" | "requests" | "usage";
 
@@ -101,12 +103,49 @@ function Card({
 }
 
 export default function UserPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<UserTab>("status");
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const totalCalls = useMemo(
     () => apiList.reduce((acc, item) => acc + item.count, 0),
     [],
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const verifySession = async () => {
+      const ok = await hasRefreshSessionApi();
+      if (!mounted) return;
+
+
+
+      if (!ok) {
+        console.log(ok)
+        // router.replace("/user?next=/user");
+        // return;
+      }
+
+      setCheckingSession(false);
+    };
+
+    void verifySession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  if (checkingSession) {
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
+        <section className="rounded-3xl border border-border bg-card p-6 text-sm text-muted shadow-sm">
+          세션 확인 중...
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
