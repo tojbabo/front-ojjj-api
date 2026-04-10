@@ -3,9 +3,9 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { LoginRequest } from "@/domains/auth/api/authApi";
-import { safeNextPath } from "@/domains/auth/lib/safeNextPath";
-import { loginUseCase } from "@/domains/auth/usecases/loginUseCase";
+import type { LoginRequest } from "@/src/auth/api/authApi";
+import { safeNextPath } from "@/src/auth/lib/safeNextPath";
+import { loginUseCase } from "@/src/auth/usecases/loginUseCase";
 
 export default function LoginPage() {
   const router = useRouter();

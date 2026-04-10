@@ -13,7 +13,7 @@ export type LoginResponse = {
 const API_BASE_URL = "http://localhost:3000";
 const LOGIN_PATH = "/api/auth/login";
 const JOIN_PATH = "/api/auth/join";
-const SESSION_CHECK_PATH = "/api/user/me";
+const PATH_CHECK_TOKEN = "/api/auth/refresh";
 
 function getErrorMessage(payload: unknown, fallback: string) {
   if (!payload || typeof payload !== "object") return fallback;
@@ -88,13 +88,35 @@ export async function logoutApi(): Promise<void> {
     method: "POST",
     credentials: "include",
   }).catch(() => undefined);
+  console.log("logout done")
 }
 
 export async function hasRefreshSessionApi(): Promise<boolean> {
-  const res = await fetch(`${API_BASE_URL}${SESSION_CHECK_PATH}`, {
+  return false;
+  const res = await fetch(`${API_BASE_URL}${PATH_CHECK_TOKEN}`, {
     method: "GET",
     credentials: "include",
   }).catch(() => null);
 
   return Boolean(res?.ok);
 }
+
+
+export async function ValidToken(): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}${PATH_CHECK_TOKEN}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    }
+  });
+
+  if(!res.ok){
+    return null;
+  }
+  else{
+    const payload = await res.json().catch(()=>({status: res.status, ok:false}));
+    return payload;
+  }
+}
+

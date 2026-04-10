@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { joinUseCase } from "@/domains/auth/usecases/joinUseCase";
+import { joinUseCase } from "@/src/auth/usecases/joinUseCase";
 
 const EMAIL_RE =
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

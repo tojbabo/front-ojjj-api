@@ -2,25 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { logoutApi } from "@/domains/auth/api/authApi";
-import { useAuthStore } from "@/domains/auth/store/authStore";
+import { loginApi, logoutApi, ValidToken } from "@/src/auth/api/authApi";
+import { useAuthStore } from "@/src/auth/store/authStore";
 
 export default function HeaderAuthButton() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
-  const [hydrated, setHydrated] = useState(false);
+  const setToken = useAuthStore((state)=> state.setAccessToken);
 
   useEffect(() => {
-    setHydrated(true);
+    const valider = async ()=>{
+      const result = await ValidToken();
+      if(result != null){
+        setToken(result);
+      }
+    }
+    valider();
   }, []);
 
   const logout = async () => {
     await logoutApi();
     clearAccessToken();
-    window.location.href = "/";
+    // window.location.href = "/";
   };
 
-  if (!hydrated || !accessToken) {
+  if (!accessToken) {
     return (
       <Link
         className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"
@@ -30,15 +36,17 @@ export default function HeaderAuthButton() {
       </Link>
     );
   }
+  else{
+    return (
+      <button
+        type="button"
+        onClick={() => void logout()}
+        className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"
+      >
+        로그아웃
+      </button>
+    );
+  }
 
-  return (
-    <button
-      type="button"
-      onClick={() => void logout()}
-      className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"
-    >
-      로그아웃
-    </button>
-  );
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { hasRefreshSessionApi } from "@/domains/auth/api/authApi";
+import { hasRefreshSessionApi } from "@/src/auth/api/authApi";
 
 type UserTab = "status" | "requests" | "usage";
 

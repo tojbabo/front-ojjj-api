@@ -1,6 +1,6 @@
-import type { JoinRequest, JoinResponse } from "@/domains/auth/api/authApi";
-import { joinApi } from "@/domains/auth/api/authApi";
-import { useAuthStore } from "@/domains/auth/store/authStore";
+import type { JoinRequest, JoinResponse } from "@/src/auth/api/authApi";
+import { joinApi } from "@/src/auth/api/authApi";
+import { useAuthStore } from "@/src/auth/store/authStore";
 
 export async function joinUseCase(
   request: JoinRequest,

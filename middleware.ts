@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { AUTH_REFRESH_COOKIE } from "@/domains/auth/cookieNames";
+import { AUTH_REFRESH_COOKIE } from "@/src/auth/cookieNames";
 
 function hasSessionCookie(request: NextRequest): boolean {
   const refresh = request.cookies.get(AUTH_REFRESH_COOKIE)?.value;
