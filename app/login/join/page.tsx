@@ -1,4 +1,4 @@
-import SignupForm from "@/src/auth/components/signupform";
+import SignupForm from "@/src/compnents/signupform";
 
 function CheckIcon() {
   return (
