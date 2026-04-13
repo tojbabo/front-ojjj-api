@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { hasRefreshSessionApi } from "@/src/auth/api/authApi";
+import { useAuthStore } from "@/src/auth/store/authStore";
 
 type UserTab = "status" | "requests" | "usage";
 
@@ -106,6 +107,9 @@ export default function UserPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<UserTab>("status");
   const [checkingSession, setCheckingSession] = useState(true);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
+  const setToken = useAuthStore((state)=> state.setAccessToken);
 
   const totalCalls = useMemo(
     () => apiList.reduce((acc, item) => acc + item.count, 0),
@@ -116,22 +120,27 @@ export default function UserPage() {
     let mounted = true;
 
     const verifySession = async () => {
-      const ok = await hasRefreshSessionApi();
-      if (!mounted) return;
+      if(accessToken == null){
+        const result = await hasRefreshSessionApi();
+        if (!mounted) return;
 
-
-
-      if (!ok) {
-        console.log(ok)
-        // router.replace("/user?next=/user");
-        // return;
+        console.log('get  access', result);
+  
+        if(result == null){
+          router.replace("/user?next=/user");
+          clearAccessToken();
+          return;
+        }
+        else{
+          setToken(result)
+        }
       }
+
 
       setCheckingSession(false);
     };
 
-    void verifySession();
-
+    verifySession();
     return () => {
       mounted = false;
     };

@@ -88,17 +88,21 @@ export async function logoutApi(): Promise<void> {
     method: "POST",
     credentials: "include",
   }).catch(() => undefined);
-  console.log("logout done")
 }
 
-export async function hasRefreshSessionApi(): Promise<boolean> {
-  return false;
+export async function hasRefreshSessionApi(): Promise<any> {
   const res = await fetch(`${API_BASE_URL}${PATH_CHECK_TOKEN}`, {
-    method: "GET",
+    method: "POST",
     credentials: "include",
   }).catch(() => null);
 
-  return Boolean(res?.ok);
+  if(!res?.ok){
+    return null;
+  }
+  else{
+    const payload = await res.json().catch(()=>({status: res.status, ok:false}));
+    return payload;
+  }
 }
 
 

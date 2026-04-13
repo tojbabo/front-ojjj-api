@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { loginApi, logoutApi, ValidToken } from "@/src/auth/api/authApi";
+import { useEffect } from "react";
+import { logoutApi, ValidToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 export default function HeaderAuthButton() {
@@ -11,13 +11,15 @@ export default function HeaderAuthButton() {
   const setToken = useAuthStore((state)=> state.setAccessToken);
 
   useEffect(() => {
-    const valider = async ()=>{
-      const result = await ValidToken();
-      if(result != null){
-        setToken(result);
+    if(accessToken == null){
+      const valider = async ()=>{
+        const result = await ValidToken();
+        if(result != null){
+          setToken(result);
+        }
       }
+      valider();
     }
-    valider();
   }, []);
 
   const logout = async () => {

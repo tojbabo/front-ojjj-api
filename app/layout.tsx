@@ -112,11 +112,11 @@ export default function RootLayout({
                     /
                   </span>
                 </label>
-                <a
+                <Link
                   className="inline-flex h-10 items-center justify-center rounded-full border border-border bg-card px-4 text-sm font-medium shadow-sm hover:bg-[color:var(--brand-weak)]"
                   href="/user">
                   관리
-                </a>
+                </Link>
                 <HeaderAuthButton />
               </div>
             </div>
