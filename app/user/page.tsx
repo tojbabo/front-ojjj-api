@@ -1,5 +1,6 @@
 "use client";
 
+import ApiRequestSection from "@/src/user/components/ApiRequestSection";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { hasRefreshSessionApi } from "@/src/auth/api/authApi";
@@ -15,7 +16,6 @@ type ApiItem = {
   successRate: string;
   lastCalledAt: string;
 };
-
 
 
 const apiList: ApiItem[] = [
@@ -47,9 +47,10 @@ const apiList: ApiItem[] = [
 
 const tabs: { key: UserTab; label: string }[] = [
   { key: "status", label: "API 현황" },
-  { key: "requests", label: "API 요청" },
+  { key: "requests", label: "API 신청" },
   { key: "usage", label: "상세 사용량" },
 ];
+
 
 function Card({
   title,
@@ -123,8 +124,6 @@ export default function UserPage() {
       if(accessToken == null){
         const result = await hasRefreshSessionApi();
         if (!mounted) return;
-
-        console.log('get  access', result);
   
         if(result == null){
           router.replace("/user?next=/user");
@@ -135,8 +134,6 @@ export default function UserPage() {
           setToken(result)
         }
       }
-
-
       setCheckingSession(false);
     };
 
@@ -280,15 +277,7 @@ export default function UserPage() {
         ) : null}
 
         {activeTab === "requests" ? (
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
-            <h2 className="text-lg font-semibold">API 요청</h2>
-            <p className="mt-1 text-sm text-muted">
-              요청 로그 영역입니다. 이후 실제 요청 내역을 연결하면 됩니다.
-            </p>
-            <div className="mt-4 rounded-2xl border border-border bg-background p-4 text-sm text-muted">
-              최근 요청: <span className="text-foreground">POST /api/auth/login</span> (200)
-            </div>
-          </div>
+          <ApiRequestSection/>
         ) : null}
 
         {activeTab === "usage" ? (
