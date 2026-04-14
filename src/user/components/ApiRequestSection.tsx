@@ -1,7 +1,6 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { logoutApi, ValidToken } from "@/src/auth/api/authApi";
+import { RequestAPIList } from "@/src/user/api/userApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 type RequestApiItem = {
@@ -10,8 +9,7 @@ type RequestApiItem = {
     tokenKey: string;
 };
   
-
-const requestApiList: RequestApiItem[] = [
+const defaultRequestApiList: RequestApiItem[] = [
     {
       name: "인증 API",
       description: "로그인/로그아웃 및 토큰 갱신 처리",
@@ -40,8 +38,38 @@ const requestApiList: RequestApiItem[] = [
 ];
 
 export default function ApiRequestSection() {
-    useEffect(() => {}, []);
+    const accessToken = useAuthStore((state) => state.accessToken);
+    const [requestApiList, setRequestApiList] = useState<RequestApiItem[]>(defaultRequestApiList);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+    useEffect(() => {
+        const getApiList = async () => {
+            if (!accessToken) {
+                setRequestApiList(defaultRequestApiList);
+                return;
+            }
+
+            try {
+                console.log("그리는 로직 ㄱㄱ")
+                const apiList = await RequestAPIList(accessToken);
+                console.log(apiList.length);
+                const fetchedRequestApiList: RequestApiItem[] = apiList.map((element: any) => ({
+                    name: element.name,
+                    description: element.desc,
+                    tokenKey: element.tokenKey ?? "",
+                }));
+
+                // 목록을 먼저 완성한 뒤 한 번에 UI 상태를 갱신
+                setRequestApiList([...defaultRequestApiList, ...fetchedRequestApiList]);
+                console.log(requestApiList.length);
+            } catch {
+                setRequestApiList(defaultRequestApiList);
+            }
+        };
+
+        getApiList();
+    }, [accessToken]);
+
     const handleCopyToken = async (tokenKey: string) => {
         try {
             await navigator.clipboard.writeText(tokenKey);
