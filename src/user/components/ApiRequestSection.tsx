@@ -44,6 +44,7 @@ export default function ApiRequestSection() {
 
     useEffect(() => {
         const getApiList = async () => {
+            console.log(accessToken);
             if (!accessToken) {
                 setRequestApiList(defaultRequestApiList);
                 return;

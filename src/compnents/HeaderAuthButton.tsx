@@ -15,7 +15,7 @@ export default function HeaderAuthButton() {
       const valider = async ()=>{
         const result = await ValidToken();
         if(result != null){
-          setToken(result);
+          setToken(result.accessToken);
         }
       }
       valider();

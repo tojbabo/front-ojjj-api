@@ -131,7 +131,7 @@ export default function UserPage() {
           return;
         }
         else{
-          setToken(result)
+          setToken(result.accessToken)
         }
       }
       setCheckingSession(false);

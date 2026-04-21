@@ -54,7 +54,7 @@ export type JoinRequest = {
 
 export type JoinResponse = {
   message?: string;
-  accesstoken?: string;
+  accessToken?: string;
   longtoken?: string;
   [key: string]: unknown;
 };

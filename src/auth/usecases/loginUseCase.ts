@@ -9,7 +9,7 @@ export async function loginUseCase(
   const response = await loginApi(request);
   const accessToken =
     response.accessToken ??
-    (response as { accesstoken?: string }).accesstoken ??
+    (response as { accessToken?: string }).accessToken ??
     response.token;
 
   if (accessToken) {

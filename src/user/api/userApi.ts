@@ -55,7 +55,7 @@ export type JoinRequest = {
 
 export type JoinResponse = {
   message?: string;
-  accesstoken?: string;
+  accessToken?: string;
   longtoken?: string;
   [key: string]: unknown;
 };
@@ -123,6 +123,7 @@ export async function RequestAPIListGet(accessToken:string): Promise<any> {
 
   return null
 }
+
 export async function RequestAPIList(accessToken:string): Promise<any[]> {
   const res = await fetch(`${API_BASE_URL}${REQ_APILIST}`, {
     method: "POST",
