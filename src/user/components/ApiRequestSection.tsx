@@ -1,36 +1,49 @@
 "use client";
 import { useEffect, useState } from "react";
-import { RequestAPIList } from "@/src/user/api/userApi";
+import { RequestAPIList, RequestAPIService } from "@/src/user/api/userApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 type RequestApiItem = {
+    id: number;
     name: string;
     description: string;
     tokenKeys: string[];
 };
+
+type ApiTokenItem = {
+    api?: number | string;
+    token?: string;
+};
+
+const TOKEN_DISPLAY_LENGTH = 24;
   
 const defaultRequestApiList: RequestApiItem[] = [
     {
+      id: 1,
       name: "인증 API",
       description: "로그인/로그아웃 및 토큰 갱신 처리",
       tokenKeys: ["tok_auth_a1b2c3d4"],
     },
     {
+      id: 2,
       name: "회원 API",
       description: "회원가입, 탈퇴, 계정 기본 정보 관리",
       tokenKeys: ["tok_member_e5f6g7h8"],
     },
     {
+      id: 3,
       name: "프로필 API",
       description: "프로필 조회 및 수정 기능 제공",
       tokenKeys: ["tok_profile_i9j0k1l2"],
     },
     {
+      id: 4,
       name: "결제 API",
       description: "결제 승인, 취소, 영수증 조회 지원",
       tokenKeys: ["tok_payment_m3n4o5p6"],
     },
     {
+      id: 5,
       name: "알림 API",
       description: "푸시/이메일/문자 알림 발송 연동",
       tokenKeys: ["tok_notice_q7r8s9t0"],
@@ -44,23 +57,24 @@ export default function ApiRequestSection() {
 
     useEffect(() => {
         const getApiList = async () => {
-            console.log(accessToken);
             if (!accessToken) {
                 setRequestApiList(defaultRequestApiList);
                 return;
             }
 
             try {
-                const apiList = await RequestAPIList(accessToken);
-                console.log(apiList)
+                const result = await RequestAPIList(accessToken);
+                const apiList = Array.isArray(result[0]) ? result[0] : [];
+                const tokenlist: ApiTokenItem[] = Array.isArray(result[1]) ? result[1] : [];
+
                 const fetchedRequestApiList: RequestApiItem[] = apiList.map((element: any) => ({
+                    id: element.id,
                     name: element.name,
                     description: element.desc,
-                    tokenKeys: Array.isArray(element.tokenKey)
-                        ? element.tokenKey.filter(Boolean)
-                        : element.tokenKey
-                          ? [element.tokenKey]
-                          : [],
+                    tokenKeys: tokenlist
+                        .filter((tokenItem) => Number(tokenItem.api) === Number(element.id))
+                        .map((tokenItem) => tokenItem.token)
+                        .filter((token): token is string => Boolean(token)),
                 }));
 
                 // 목록을 먼저 완성한 뒤 한 번에 UI 상태를 갱신
@@ -102,6 +116,17 @@ export default function ApiRequestSection() {
         }
     };
 
+    const handleRequestServiceTouch = async (serviceId: number) => {
+        if (!accessToken) return;
+        console.log(await RequestAPIService(accessToken, serviceId))
+    };
+
+    const getDisplayToken = (tokenKey: string) => {
+        if (!tokenKey) return "-";
+        if (tokenKey.length <= TOKEN_DISPLAY_LENGTH) return tokenKey;
+        return `${tokenKey.slice(0, TOKEN_DISPLAY_LENGTH)}...`;
+    };
+
     return (
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
                 <h2 className="text-lg font-semibold">API 요청</h2>
@@ -124,7 +149,7 @@ export default function ApiRequestSection() {
                             <div key={`${api.name}-${tokenIndex}`} className="flex items-center gap-2">
                                 <span className="inline-block w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground">
 
-                                    {tokenKey || "-"}
+                                    {getDisplayToken(tokenKey)}
                                 </span>
                                 <button
                                     type="button"
@@ -166,7 +191,7 @@ export default function ApiRequestSection() {
                         <div className="flex items-center justify-end gap-2">
                         <button
                             type="button"
-                            onClick={() => handleApiAction(api.name, "send")}
+                            onClick={() =>handleRequestServiceTouch(api.id)}
                             className="inline-flex h-9 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
                         >
                             {api.tokenKeys.length > 0 ? "추가하기" : "신청하기"}
