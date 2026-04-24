@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { RequestAPIList, RequestAPIService } from "@/src/user/api/userApi";
+import { RequestAPIList, RequestAPIService, RequestReleaseToken } from "@/src/user/api/userApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 type RequestApiItem = {
     id: number;
     name: string;
     description: string;
-    tokenKeys: string[];
+    tokenKey: string|undefined;
 };
 
 type ApiTokenItem = {
@@ -17,38 +17,33 @@ type ApiTokenItem = {
 
 const TOKEN_DISPLAY_LENGTH = 24;
   
-const defaultRequestApiList: RequestApiItem[] = [
-    {
-      id: 1,
-      name: "인증 API",
-      description: "로그인/로그아웃 및 토큰 갱신 처리",
-      tokenKeys: ["tok_auth_a1b2c3d4"],
-    },
-    {
-      id: 2,
-      name: "회원 API",
-      description: "회원가입, 탈퇴, 계정 기본 정보 관리",
-      tokenKeys: ["tok_member_e5f6g7h8"],
-    },
-    {
-      id: 3,
-      name: "프로필 API",
-      description: "프로필 조회 및 수정 기능 제공",
-      tokenKeys: ["tok_profile_i9j0k1l2"],
-    },
-    {
-      id: 4,
-      name: "결제 API",
-      description: "결제 승인, 취소, 영수증 조회 지원",
-      tokenKeys: ["tok_payment_m3n4o5p6"],
-    },
-    {
-      id: 5,
-      name: "알림 API",
-      description: "푸시/이메일/문자 알림 발송 연동",
-      tokenKeys: ["tok_notice_q7r8s9t0"],
-    },
-];
+const defaultRequestApiList: RequestApiItem[] = [];
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null;
+
+const extractTokenKey = (value: unknown): string | undefined => {
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) return undefined;
+    if (!isObject(value)) return undefined;
+
+    const token = value.token;
+    if (typeof token === "string") return token;
+
+    const tokenKey = value.tokenKey;
+    if (typeof tokenKey === "string") return tokenKey;
+
+    const data = value.data;
+    if (!isObject(data)) return undefined;
+
+    const dataToken = data.token;
+    if (typeof dataToken === "string") return dataToken;
+
+    const dataTokenKey = data.tokenKey;
+    if (typeof dataTokenKey === "string") return dataTokenKey;
+
+    return undefined;
+};
 
 export default function ApiRequestSection() {
     const accessToken = useAuthStore((state) => state.accessToken);
@@ -71,10 +66,7 @@ export default function ApiRequestSection() {
                     id: element.id,
                     name: element.name,
                     description: element.desc,
-                    tokenKeys: tokenlist
-                        .filter((tokenItem) => Number(tokenItem.api) === Number(element.id))
-                        .map((tokenItem) => tokenItem.token)
-                        .filter((token): token is string => Boolean(token)),
+                    tokenKey: tokenlist.find((tokenItem) => Number(tokenItem.api) === Number(element.id))?.token
                 }));
 
                 // 목록을 먼저 완성한 뒤 한 번에 UI 상태를 갱신
@@ -99,29 +91,43 @@ export default function ApiRequestSection() {
         }
     };
 
-    const handleApiAction = async (apiName: string, action: "send" | "cancel") => {
-        const endpoint = `/api/test/${action}`;
+    const handleRequestServiceTouch = async (serviceId: number, flag: boolean) => {
+        if (!accessToken) return;
+        
+        if(flag){
+            const receivedtoken = await RequestAPIService(accessToken, serviceId);
+            const nextTokenKey = extractTokenKey(receivedtoken);
 
-        try {
-            await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-                },
-                body: JSON.stringify({ apiName }),
-            });
-        } catch {
-            // TODO: 실제 API 연동 시 에러 처리 UI 추가
+            if (nextTokenKey) {
+                setRequestApiList((prev) =>
+                    prev.map((item) =>
+                        item.id === serviceId
+                            ? { ...item, tokenKey: String(nextTokenKey) }
+                            : item
+                    )
+                );
+            }
+        }
+        else{
+            const result = await RequestReleaseToken(accessToken, serviceId);
+            const isReleaseSuccess =
+                result === true ||
+                (isObject(result) && (result.result === true || result.success === true));
+
+            if (isReleaseSuccess) {
+                setRequestApiList((prev) =>
+                    prev.map((item) =>
+                        item.id === serviceId
+                            ? { ...item, tokenKey: undefined }
+                            : item
+                    )
+                );
+            }
+
         }
     };
 
-    const handleRequestServiceTouch = async (serviceId: number) => {
-        if (!accessToken) return;
-        console.log(await RequestAPIService(accessToken, serviceId))
-    };
-
-    const getDisplayToken = (tokenKey: string) => {
+    const getDisplayToken = (tokenKey: string|undefined) => {
         if (!tokenKey) return "-";
         if (tokenKey.length <= TOKEN_DISPLAY_LENGTH) return tokenKey;
         return `${tokenKey.slice(0, TOKEN_DISPLAY_LENGTH)}...`;
@@ -136,72 +142,57 @@ export default function ApiRequestSection() {
                 <div className="mt-4 overflow-x-auto">
                 <div className="min-w-[900px] rounded-2xl border border-border bg-background">
                     {requestApiList.map((api, index) => (
-                    <div
-                        key={api.name}
+                    <div key={api.name}
                         className={`grid grid-cols-[1.1fr_1.8fr_1.8fr_auto] items-center gap-3 px-4 py-3 ${
-                        index !== requestApiList.length - 1 ? "border-b border-border" : ""
-                        }`}
-                    >
+                        index !== requestApiList.length - 1 ? "border-b border-border" : ""}`}>
                         <div className="text-sm font-medium text-foreground">{api.name}</div>
                         <div className="text-sm text-muted">{api.description}</div>
                         <div className="flex flex-col gap-2">
-                        {(api.tokenKeys.length > 0 ? api.tokenKeys : [""]).map((tokenKey, tokenIndex) => (
-                            <div key={`${api.name}-${tokenIndex}`} className="flex items-center gap-2">
-                                <span className="inline-block w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground">
-
-                                    {getDisplayToken(tokenKey)}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => tokenKey && handleCopyToken(tokenKey)}
-                                    disabled={!tokenKey}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-[color:var(--brand-weak)] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label={`${api.name} 토큰 키 복사`}
+                        <div key={`${api.name}`} className="flex items-center gap-2">
+                            <span className="inline-block w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground">
+                                {getDisplayToken(api.tokenKey)}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => api.tokenKey && handleCopyToken(api.tokenKey)}
+                                disabled={!api.tokenKey}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-[color:var(--brand-weak)] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                                aria-label={`${api.name} 토큰 키 복사`}>
+                                <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
                                 >
-                                    <svg
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                    <rect
-                                        x="9"
-                                        y="9"
-                                        width="11"
-                                        height="11"
-                                        rx="2"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                    />
-                                    <path
-                                        d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        strokeLinecap="round"
-                                    />
-                                    </svg>
-                                </button>
-                                {tokenKey && copiedKey === tokenKey ? (
-                                    <span className="text-xs font-medium text-[color:var(--brand)]">복사됨</span>
-                                ) : null}
-                            </div>
-                        ))}
+                                <rect
+                                    x="9"
+                                    y="9"
+                                    width="11"
+                                    height="11"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                />
+                                <path
+                                    d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                />
+                                </svg>
+                            </button>
+                            {copiedKey === api.tokenKey ? (
+                                <span className="text-xs font-medium text-[color:var(--brand)]">복사됨</span>
+                            ) : null}
+                        </div>
                         </div>
                         <div className="flex items-center justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={() =>handleRequestServiceTouch(api.id)}
-                            className="inline-flex h-9 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
-                        >
-                            {api.tokenKeys.length > 0 ? "추가하기" : "신청하기"}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleApiAction(api.name, "cancel")}
-                            className="inline-flex h-9 items-center justify-center rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-[color:var(--brand-weak)]"
-                        >
-                            반납하기
+                        <button type="button"
+                            onClick={() =>handleRequestServiceTouch(api.id, api.tokenKey == undefined)}
+                            className="inline-flex h-9 items-center justify-center rounded-full bg-[color:var(--brand)] 
+                            px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90">
+                            {api.tokenKey != undefined ? "반납하기" : "신청하기"}
                         </button>
                         </div>
                     </div>

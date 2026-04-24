@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OJ 개발자 센터",
+  title: "OJJJ's API Center",
   description: "API 문서, 가이드, 공지와 도구를 한 곳에서.",
 };
 
@@ -52,33 +52,18 @@ export default function RootLayout({
                 </span>
                 <div className="leading-tight">
                   <div className="text-sm font-semibold tracking-tight">
-                    OJ 개발자 센터
+                    OJJJ's API Center
                   </div>
-                  <div className="text-xs text-muted">Developers</div>
+                  <div className="text-xs text-muted">for Developers</div>
                 </div>
               </Link>
 
               <nav className="ml-4 hidden items-center gap-5 text-sm font-medium md:flex">
-                <a className="text-foreground/80 hover:text-foreground" href="#docs">
-                  문서
-                </a>
-                <a
-                  className="text-foreground/80 hover:text-foreground"
-                  href="#api"
-                >
+                <a className="text-foreground/80 hover:text-foreground" href="#api">
                   API
                 </a>
-                <a
-                  className="text-foreground/80 hover:text-foreground"
-                  href="#guides"
-                >
-                  가이드
-                </a>
-                <a
-                  className="text-foreground/80 hover:text-foreground"
-                  href="#notice"
-                >
-                  공지
+                <a className="text-foreground/80 hover:text-foreground" href="#docs">
+                  문서
                 </a>
               </nav>
 

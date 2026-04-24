@@ -16,6 +16,7 @@ const JOIN_PATH = "/api/auth/join";
 const PATH_CHECK_TOKEN = "/api/auth/refresh";
 const REQ_APILIST = "/api/user/apilist";
 const REQ_APISERVICE = "/api/user/addapi";
+const REQ_RELEASESERVICE = "/api/user/releaseapi";
 
 function getErrorMessage(payload: unknown, fallback: string) {
   if (!payload || typeof payload !== "object") return fallback;
@@ -140,7 +141,6 @@ export async function RequestAPIList(accessToken:string): Promise<any[]> {
   return [payload.list, payload.tokens]
 }
 
-
 export async function RequestAPIService(accessToken:string, serviceid: number): Promise<any[]> {
   const res = await fetch(`${API_BASE_URL}${REQ_APISERVICE}`, {
     method: "POST",
@@ -154,9 +154,22 @@ export async function RequestAPIService(accessToken:string, serviceid: number): 
     })
   });
 
-
   const payload = await res.json().catch(()=>({status: res.status, ok:false}));
   return payload
 }
 
+export async function RequestReleaseToken(accessToken:string, serviceid: number): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}${REQ_RELEASESERVICE}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      serviceid: serviceid
+    })
+  });
 
+  return true;
+}
