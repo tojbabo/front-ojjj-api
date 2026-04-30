@@ -59,10 +59,10 @@ export default function RootLayout({
               </Link>
 
               <nav className="ml-4 hidden items-center gap-5 text-sm font-medium md:flex">
-                <a className="text-foreground/80 hover:text-foreground" href="#api">
+                <a className="text-foreground/80 hover:text-foreground" href="/user">
                   API
                 </a>
-                <a className="text-foreground/80 hover:text-foreground" href="#docs">
+                <a className="text-foreground/80 hover:text-foreground" href="/document">
                   문서
                 </a>
               </nav>
