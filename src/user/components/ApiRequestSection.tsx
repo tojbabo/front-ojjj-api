@@ -65,8 +65,7 @@ export default function ApiRequestSection() {
 
             try {
                 const result = await RequestAPIList(accessToken);
-                const tokenlist: ApiTokenItem[] = Array.isArray(result[1]) ? result[1] : [];
-                console.log(tokenlist);
+                const tokenlist: ApiTokenItem[] = result;
 
                 const tokenByApiId = new Map<number, string>();
                 tokenlist.forEach((tokenItem) => {

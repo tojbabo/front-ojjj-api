@@ -14,4 +14,11 @@ export const apiList: ApiDocument[] = [
     parameters: "{start-time: HHMMSS, end-time: HHMMSS}",
     data: "[proc_name: string, proc_ram:int]",
   },
+  {
+    id: 1,
+    title: "templist",
+    summary: "temp api data",
+    parameters: "{}",
+    data: "[]",
+  },
 ];
