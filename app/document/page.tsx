@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { apiList } from "@/src/constants/apilist";
 
 export default function DocumentPage() {
-  const [selectedApiId, setSelectedApiId] = useState<string | null>(
+  const [selectedApiId, setSelectedApiId] = useState<number | null>(
     apiList[0]?.id ?? null
   );
 

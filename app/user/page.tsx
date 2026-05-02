@@ -1,12 +1,13 @@
 "use client";
 
 import ApiRequestSection from "@/src/user/components/ApiRequestSection";
+import ApiExampleSection from "@/src/user/components/ApiExampleSection";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { hasRefreshSessionApi } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
-type UserTab = "status" | "requests" | "usage";
+type UserTab = "status" | "requests" | "usage" | "example";
 
 type ApiItem = {
   name: string;
@@ -49,6 +50,7 @@ const tabs: { key: UserTab; label: string }[] = [
   { key: "status", label: "API 현황" },
   { key: "requests", label: "API 신청" },
   { key: "usage", label: "상세 사용량" },
+  { key: "example", label: "API 예시" },
 ];
 
 
@@ -301,6 +303,10 @@ export default function UserPage() {
               </div>
             </div>
           </div>
+        ) : null}
+
+        {activeTab === "example" ? (
+          <ApiExampleSection />
         ) : null}
       </section>
     </main>
