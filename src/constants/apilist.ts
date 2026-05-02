@@ -1,5 +1,5 @@
 export type ApiDocument = {
-  id: string;
+  id: number;
   title: string;
   summary: string;
   parameters: string;
@@ -8,9 +8,9 @@ export type ApiDocument = {
 
 export const apiList: ApiDocument[] = [
   {
-    id: "sample-api",
+    id: 0,
     title: "windows-usage",
-    summary: "주인장의 윈도우 프로그램 점유율을 확인하세요",
+    summary: "주인장의 윈도우 주요 프로그램 사용 시간",
     parameters: "{start-time: HHMMSS, end-time: HHMMSS}",
     data: "[proc_name: string, proc_ram:int]",
   },

@@ -138,7 +138,7 @@ export async function RequestAPIList(accessToken:string): Promise<any[]> {
 
 
   const payload = await res.json().catch(()=>({status: res.status, ok:false}));
-  return [payload.list, payload.tokens]
+  return payload.tokens
 }
 
 export async function RequestAPIService(accessToken:string, serviceid: number): Promise<any[]> {

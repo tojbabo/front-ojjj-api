@@ -2,12 +2,13 @@
 import { useEffect, useState } from "react";
 import { RequestAPIList, RequestAPIService, RequestReleaseToken } from "@/src/user/api/userApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
+import { apiList, ApiDocument } from "@/src/constants/apilist";
 
 type RequestApiItem = {
     id: number;
     name: string;
     description: string;
-    tokenKey: string|undefined;
+    tokenKey: string | undefined;
 };
 
 type ApiTokenItem = {
@@ -16,8 +17,13 @@ type ApiTokenItem = {
 };
 
 const TOKEN_DISPLAY_LENGTH = 24;
-  
-const defaultRequestApiList: RequestApiItem[] = [];
+
+const defaultRequestApiList: RequestApiItem[] = apiList.map((api: ApiDocument) => ({
+    id: api.id,
+    name: api.title,
+    description: api.summary,
+    tokenKey: undefined,
+}));
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null;
@@ -59,18 +65,23 @@ export default function ApiRequestSection() {
 
             try {
                 const result = await RequestAPIList(accessToken);
-                const apiList = Array.isArray(result[0]) ? result[0] : [];
                 const tokenlist: ApiTokenItem[] = Array.isArray(result[1]) ? result[1] : [];
+                console.log(tokenlist);
 
-                const fetchedRequestApiList: RequestApiItem[] = apiList.map((element: any) => ({
-                    id: element.id,
-                    name: element.name,
-                    description: element.desc,
-                    tokenKey: tokenlist.find((tokenItem) => Number(tokenItem.api) === Number(element.id))?.token
+                const tokenByApiId = new Map<number, string>();
+                tokenlist.forEach((tokenItem) => {
+                    const apiId = Number(tokenItem.api);
+                    if (!Number.isNaN(apiId) && typeof tokenItem.token === "string") {
+                        tokenByApiId.set(apiId, tokenItem.token);
+                    }
+                });
+
+                const mergedRequestApiList: RequestApiItem[] = defaultRequestApiList.map((item) => ({
+                    ...item,
+                    tokenKey: tokenByApiId.get(item.id),
                 }));
 
-                // 목록을 먼저 완성한 뒤 한 번에 UI 상태를 갱신
-                setRequestApiList([...defaultRequestApiList, ...fetchedRequestApiList]);
+                setRequestApiList(mergedRequestApiList);
             } catch {
                 setRequestApiList(defaultRequestApiList);
             }
