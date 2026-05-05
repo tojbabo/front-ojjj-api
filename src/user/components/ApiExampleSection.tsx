@@ -52,6 +52,29 @@ const getNumericEntries = (row: Record<string, unknown>): Array<{ key: string; v
     .filter((entry) => !Number.isNaN(entry.value));
 };
 
+const formatYyyymmddHhmm = (value: string): string => {
+  const digitsOnly = value.replace(/\D/g, "").slice(0, 12);
+  return digitsOnly;
+};
+
+const getTodayYyyymmdd = (): string => {
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
+};
+
+const getDefaultParameterValuesForApi = (api?: ApiDocument): ParamMap => {
+  if (api?.title !== "windows-usage") return {};
+  const today = getTodayYyyymmdd();
+  return {
+    stime: `${today}0000`,
+    etime: `${today}2359`,
+    size: '100'
+  };
+};
+
 export default function ApiExampleSection() {
   const [selectedApiId, setSelectedApiId] = useState<number>(apiList[0]?.id ?? 0);
   const [requestState, setRequestState] = useState<RequestState>("idle");
@@ -69,18 +92,43 @@ export default function ApiExampleSection() {
     [selectedApi?.parameters],
   );
 
-  const [parameterValues, setParameterValues] = useState<ParamMap>({});
+  const [parameterValues, setParameterValues] = useState<ParamMap>(() =>
+    getDefaultParameterValuesForApi(apiList[0]),
+  );
+
+  const isWindowsUsageApi = selectedApi?.title === "windows-usage";
+
+  const isDatetimeField = (key: string) => isWindowsUsageApi && (key === "stime" || key === "etime");
 
   const handleSelectApi = (nextApiId: number) => {
+    const nextApi = apiList.find((item) => item.id === nextApiId);
     setSelectedApiId(nextApiId);
-    setParameterValues({});
+    setParameterValues(getDefaultParameterValuesForApi(nextApi));
     setResponseRows([]);
     setRequestState("idle");
     setErrorMessage("");
   };
 
   const handleChangeParameter = (key: string, value: string) => {
+    if (isDatetimeField(key)) {
+      const formatted = formatYyyymmddHhmm(value);
+      setParameterValues((prev) => ({ ...prev, [key]: formatted }));
+      return;
+    }
     setParameterValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleBlurParameter = (key: string) => {
+    if (!isDatetimeField(key)) return;
+    setParameterValues((prev) => {
+      const current = prev[key] ?? "";
+      const today = getTodayYyyymmdd();
+      const defaultValue = key === "stime" ? `${today}0000` : `${today}2359`;
+      const nextValue = formatYyyymmddHhmm(current);
+      if (nextValue.length !== 12) return { ...prev, [key]: defaultValue };
+      if (current === nextValue) return prev;
+      return { ...prev, [key]: nextValue };
+    });
   };
 
   const requestPayload = useMemo(() => {
@@ -94,9 +142,8 @@ export default function ApiExampleSection() {
     if (!selectedApi) return;
     setRequestState("loading");
     setErrorMessage("");
-
     try {
-      const endpoint = `${API_BASE_URL}/api/document/${selectedApi.title}`;
+      const endpoint = `${API_BASE_URL}/api/user/winprocs`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -175,8 +222,9 @@ export default function ApiExampleSection() {
                   <input
                     value={parameterValues[key] ?? ""}
                     onChange={(e) => handleChangeParameter(key, e.target.value)}
+                    onBlur={() => handleBlurParameter(key)}
                     className="h-10 rounded-lg border border-border bg-card px-3 outline-none focus:border-[color:var(--brand)]"
-                    placeholder={`${key} 값을 입력하세요`}
+                    placeholder={isDatetimeField(key) ? "YYYYMMDDhhmm" : `${key} 값을 입력하세요`}
                   />
                 </label>
               ))
