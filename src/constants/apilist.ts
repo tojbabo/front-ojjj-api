@@ -12,7 +12,7 @@ export const apiList: ApiDocument[] = [
     title: "windows-usage",
     summary: "주인장의 윈도우 주요 프로그램 사용 시간",
     parameters: "{stime: YYYYMMDDhhmm, etime: YYYYMMDDhhmm, size: number}",
-    data: "[proc_name: string, proc_ram:string]",
+    data: "[pname: string, data:[process:string, mem:float, time:number, id:string, cpu:float]]",
   },
   {
     id: 1,

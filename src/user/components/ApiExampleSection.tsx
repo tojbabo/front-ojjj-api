@@ -6,6 +6,15 @@ import { useMemo, useState } from "react";
 type ResultTab = "graph" | "list";
 type RequestState = "idle" | "loading" | "success" | "error";
 type ParamMap = Record<string, string>;
+type GraphType = "bar" | "line";
+type UsageMetric = "cpu" | "memory" | "time";
+type UsagePoint = {
+  id: string;
+  label: string;
+  cpu: number;
+  mem: number;
+  time: number;
+};
 
 const API_BASE_URL = "http://localhost:3000";
 
@@ -43,13 +52,55 @@ const parseResponseRows = (value: unknown): Record<string, unknown>[] => {
   return [{ value }];
 };
 
-const getNumericEntries = (row: Record<string, unknown>): Array<{ key: string; value: number }> => {
-  return Object.entries(row)
-    .map(([key, value]) => ({
-      key,
-      value: typeof value === "number" ? value : Number(value),
-    }))
-    .filter((entry) => !Number.isNaN(entry.value));
+const toNumber = (value: unknown): number => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }
+  return NaN;
+};
+
+const toUsagePoint = (value: unknown, fallbackId: string): UsagePoint | null => {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  const cpu = toNumber(row.cpu);
+  const mem = toNumber(row.mem);
+  const time = toNumber(row.time);
+  console.log(cpu, mem, time);
+  if ([cpu, mem, time].some((item) => Number.isNaN(item))) return null;
+
+  const rawLabel = row.process ?? row.pname ?? row.id ?? fallbackId;
+  const label = typeof rawLabel === "string" ? rawLabel : String(rawLabel);
+  const rawId = row.id ?? label;
+  const id = typeof rawId === "string" ? rawId : String(rawId);
+
+  return { id, label, cpu, mem, time };
+};
+
+const extractUsagePoints = (rows: Record<string, unknown>[]): UsagePoint[] => {
+  const direct = rows
+    .map((row, idx) => toUsagePoint(row, `row-${idx}`))
+    .filter((item): item is UsagePoint => Boolean(item));
+  if (direct.length > 0) return direct.slice(0, 12);
+
+  const nested: UsagePoint[] = [];
+  rows.forEach((row, rowIdx) => {
+    const nestedData = row.data;
+    if (!Array.isArray(nestedData)) return;
+    nestedData.forEach((item, nestedIdx) => {
+      
+      const point = toUsagePoint(item, `row-${rowIdx}-${nestedIdx}`);
+      console.log(point)
+      if (!point) return;
+      const pname = typeof row.pname === "string" ? row.pname : "";
+      if (pname) {
+        point.label = `${pname}:${point.label}`;
+      }
+      nested.push(point);
+    });
+  });
+  return nested.slice(0, 12);
 };
 
 const formatYyyymmddHhmm = (value: string): string => {
@@ -79,6 +130,8 @@ export default function ApiExampleSection() {
   const [selectedApiId, setSelectedApiId] = useState<number>(apiList[0]?.id ?? 0);
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [resultTab, setResultTab] = useState<ResultTab>("graph");
+  const [graphType, setGraphType] = useState<GraphType>("bar");
+  const [usageMetric, setUsageMetric] = useState<UsageMetric>("cpu");
   const [responseRows, setResponseRows] = useState<Record<string, unknown>[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -158,6 +211,10 @@ export default function ApiExampleSection() {
       }
 
       const rows = parseResponseRows(payload);
+      
+      console.log(rows);
+
+
       setResponseRows(rows);
       setRequestState("success");
       setResultTab("graph");
@@ -168,9 +225,27 @@ export default function ApiExampleSection() {
     }
   };
 
-  const graphSource = responseRows[0];
-  const graphEntries = graphSource ? getNumericEntries(graphSource).slice(0, 8) : [];
-  const maxGraphValue = graphEntries.length ? Math.max(...graphEntries.map((entry) => entry.value), 1) : 1;
+  const usagePoints = useMemo(() => extractUsagePoints(responseRows), [responseRows]);
+  const selectedMetricLabel = usageMetric === "cpu" ? "CPU" : usageMetric === "memory" ? "Memory" : "Time";
+  const graphEntries = useMemo(
+    () =>
+      usagePoints.map((point) => ({
+        key: point.id,
+        label: point.label,
+        value: point[usageMetric],
+      })),
+    [usagePoints, usageMetric],
+  );
+  const maxGraphValue = graphEntries.length
+    ? Math.max(...graphEntries.map((entry) => entry.value), 1)
+    : 1;
+  const linePoints = graphEntries
+    .map((entry, idx) => {
+      const x = graphEntries.length === 1 ? 0 : (idx / (graphEntries.length - 1)) * 100;
+      const y = 100 - (entry.value / maxGraphValue) * 100;
+      return `${x},${Math.max(0, y)}`;
+    })
+    .join(" ");
 
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
@@ -283,13 +358,77 @@ export default function ApiExampleSection() {
 
         {requestState === "success" && resultTab === "graph" ? (
           <div className="mt-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setGraphType("bar")}
+                className={
+                  graphType === "bar"
+                    ? "rounded-full bg-[color:var(--brand)] px-3 py-1 text-xs font-semibold text-white"
+                    : "rounded-full border border-border px-3 py-1 text-xs"
+                }
+              >
+                막대 그래프
+              </button>
+              <button
+                type="button"
+                onClick={() => setGraphType("line")}
+                className={
+                  graphType === "line"
+                    ? "rounded-full bg-[color:var(--brand)] px-3 py-1 text-xs font-semibold text-white"
+                    : "rounded-full border border-border px-3 py-1 text-xs"
+                }
+              >
+                라인 그래프
+              </button>
+              <div className="ml-auto flex items-center gap-2 text-xs">
+                <span className="text-muted">지표</span>
+                <select
+                  value={usageMetric}
+                  onChange={(e) => setUsageMetric(e.target.value as UsageMetric)}
+                  className="h-8 rounded-lg border border-border bg-card px-2"
+                >
+                  <option value="cpu">CPU</option>
+                  <option value="memory">Memory</option>
+                  <option value="time">Time</option>
+                </select>
+              </div>
+            </div>
             {graphEntries.length === 0 ? (
               <div className="text-sm text-muted">그래프로 표시할 숫자 데이터가 없습니다.</div>
+            ) : graphType === "line" ? (
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs text-muted">{selectedMetricLabel} 라인 그래프</div>
+                <svg viewBox="0 0 100 100" className="h-56 w-full">
+                  <polyline fill="none" stroke="var(--brand)" strokeWidth="2" points={linePoints} />
+                  {graphEntries.map((entry, idx) => {
+                    const cx = graphEntries.length === 1 ? 0 : (idx / (graphEntries.length - 1)) * 100;
+                    const cy = 100 - (entry.value / maxGraphValue) * 100;
+                    return (
+                      <circle
+                        key={entry.key}
+                        cx={cx}
+                        cy={Math.max(0, cy)}
+                        r="1.4"
+                        fill="var(--brand)"
+                      />
+                    );
+                  })}
+                </svg>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                  {graphEntries.map((entry) => (
+                    <div key={`legend-${entry.key}`} className="rounded-lg border border-border px-2 py-1">
+                      <div className="truncate text-muted">{entry.label}</div>
+                      <div className="font-mono">{entry.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               graphEntries.map((entry) => (
                 <div key={entry.key}>
                   <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-medium">{entry.key}</span>
+                    <span className="font-medium">{entry.label}</span>
                     <span className="font-mono">{entry.value}</span>
                   </div>
                   <div className="h-2 rounded-full bg-border/50">
