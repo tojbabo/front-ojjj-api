@@ -7,9 +7,12 @@ type ResultTab = "graph" | "list";
 type RequestState = "idle" | "loading" | "success" | "error";
 type ParamMap = Record<string, string>;
 type GraphType = "bar" | "line";
-type UsageMetric = "cpu" | "memory" | "time";
+type UsageMetric = "cpu" | "mem" | "time";
+type ProcessLineSeries = {
+  label: string;
+  values: number[];
+};
 type UsagePoint = {
-  id: string;
   label: string;
   cpu: number;
   mem: number;
@@ -61,21 +64,80 @@ const toNumber = (value: unknown): number => {
   return NaN;
 };
 
+const pickTimeValue = (value: Record<string, unknown>): string | null => {
+  const timeKeys = ["time", "timestamp", "datetime", "date", "dt", "logtime", "collect_time", "stime"];
+  for (const key of timeKeys) {
+    const raw = value[key];
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+    if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
+  }
+  return null;
+};
+
+const formatTimeLabel = (value: string): string => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length >= 12) {
+    const hh = digits.slice(8, 10);
+    const mm = digits.slice(10, 12);
+    return `${hh}:${mm}`;
+  }
+  if (digits.length >= 4) {
+    const hh = digits.slice(0, 2);
+    const mm = digits.slice(2, 4);
+    return `${hh}:${mm}`;
+  }
+  return value;
+};
+
+const extractProcessLineSeries = (
+  rows: Record<string, unknown>[],
+  metric: UsageMetric,
+): { times: string[]; series: ProcessLineSeries[] } => {
+  const allTimes = new Set<string>();
+  const processMap = new Map<string, Map<string, number>>();
+
+  rows.forEach((row, rowIdx) => {
+    const processName =
+      (typeof row.pname === "string" && row.pname) ||
+      (typeof row.process === "string" && row.process) ||
+      `process-${rowIdx + 1}`;
+    const data = Array.isArray(row.data) ? row.data : [];
+    if (data.length === 0) return;
+
+    const valueByTime = processMap.get(processName) ?? new Map<string, number>();
+    data.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const point = item as Record<string, unknown>;
+      const timeKey = pickTimeValue(point);
+      if (!timeKey) return;
+      allTimes.add(timeKey);
+      const metricValue = toNumber(point[metric]);
+      valueByTime.set(timeKey, Number.isFinite(metricValue) ? metricValue : 0);
+    });
+    processMap.set(processName, valueByTime);
+  });
+
+  const times = Array.from(allTimes).sort((a, b) => a.localeCompare(b));
+  const series = Array.from(processMap.entries()).map(([label, valueByTime]) => ({
+    label,
+    values: times.map((time) => valueByTime.get(time) ?? 0),
+  }));
+
+  return { times, series };
+};
+
 const toUsagePoint = (value: unknown, fallbackId: string): UsagePoint | null => {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
   const cpu = toNumber(row.cpu);
   const mem = toNumber(row.mem);
   const time = toNumber(row.time);
-  console.log(cpu, mem, time);
   if ([cpu, mem, time].some((item) => Number.isNaN(item))) return null;
 
-  const rawLabel = row.process ?? row.pname ?? row.id ?? fallbackId;
+  const rawLabel = row.process ?? row.pname ?? fallbackId;
   const label = typeof rawLabel === "string" ? rawLabel : String(rawLabel);
-  const rawId = row.id ?? label;
-  const id = typeof rawId === "string" ? rawId : String(rawId);
 
-  return { id, label, cpu, mem, time };
+  return { label, cpu, mem, time };
 };
 
 const extractUsagePoints = (rows: Record<string, unknown>[]): UsagePoint[] => {
@@ -91,7 +153,6 @@ const extractUsagePoints = (rows: Record<string, unknown>[]): UsagePoint[] => {
     nestedData.forEach((item, nestedIdx) => {
       
       const point = toUsagePoint(item, `row-${rowIdx}-${nestedIdx}`);
-      console.log(point)
       if (!point) return;
       const pname = typeof row.pname === "string" ? row.pname : "";
       if (pname) {
@@ -211,8 +272,6 @@ export default function ApiExampleSection() {
       }
 
       const rows = parseResponseRows(payload);
-      
-      console.log(rows);
 
 
       setResponseRows(rows);
@@ -226,11 +285,11 @@ export default function ApiExampleSection() {
   };
 
   const usagePoints = useMemo(() => extractUsagePoints(responseRows), [responseRows]);
-  const selectedMetricLabel = usageMetric === "cpu" ? "CPU" : usageMetric === "memory" ? "Memory" : "Time";
+  const selectedMetricLabel = usageMetric === "cpu" ? "CPU" : usageMetric === "mem" ? "MEM" : "Time";
   const graphEntries = useMemo(
     () =>
-      usagePoints.map((point) => ({
-        key: point.id,
+      usagePoints.map((point, idx) => ({
+        key: `point-${idx}`,
         label: point.label,
         value: point[usageMetric],
       })),
@@ -246,6 +305,25 @@ export default function ApiExampleSection() {
       return `${x},${Math.max(0, y)}`;
     })
     .join(" ");
+  const processLineData = useMemo(
+    () => extractProcessLineSeries(responseRows, usageMetric),
+    [responseRows, usageMetric],
+  );
+  const processLineMax = processLineData.series.length
+    ? Math.max(...processLineData.series.flatMap((item) => item.values), 1)
+    : 1;
+  const linePalette = [
+    "#2563eb",
+    "#dc2626",
+    "#16a34a",
+    "#9333ea",
+    "#ea580c",
+    "#0891b2",
+    "#ca8a04",
+    "#be123c",
+    "#0d9488",
+    "#4f46e5",
+  ];
 
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
@@ -389,7 +467,7 @@ export default function ApiExampleSection() {
                   className="h-8 rounded-lg border border-border bg-card px-2"
                 >
                   <option value="cpu">CPU</option>
-                  <option value="memory">Memory</option>
+                  <option value="mem">Memory</option>
                   <option value="time">Time</option>
                 </select>
               </div>
@@ -398,28 +476,67 @@ export default function ApiExampleSection() {
               <div className="text-sm text-muted">그래프로 표시할 숫자 데이터가 없습니다.</div>
             ) : graphType === "line" ? (
               <div className="rounded-xl border border-border p-3">
-                <div className="mb-2 text-xs text-muted">{selectedMetricLabel} 라인 그래프</div>
-                <svg viewBox="0 0 100 100" className="h-56 w-full">
-                  <polyline fill="none" stroke="var(--brand)" strokeWidth="2" points={linePoints} />
-                  {graphEntries.map((entry, idx) => {
-                    const cx = graphEntries.length === 1 ? 0 : (idx / (graphEntries.length - 1)) * 100;
-                    const cy = 100 - (entry.value / maxGraphValue) * 100;
-                    return (
-                      <circle
-                        key={entry.key}
-                        cx={cx}
-                        cy={Math.max(0, cy)}
-                        r="1.4"
-                        fill="var(--brand)"
-                      />
-                    );
-                  })}
-                </svg>
+                <div className="mb-2 text-xs text-muted">
+                  시간(X) - {selectedMetricLabel}(Y) 프로세스별 라인 그래프
+                </div>
+                {processLineData.times.length === 0 || processLineData.series.length === 0 ? (
+                  <div className="text-sm text-muted">시간 데이터가 없어 라인 그래프를 표시할 수 없습니다.</div>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 100 100" className="h-56 w-full">
+                      {processLineData.series.map((series, seriesIdx) => {
+                        const points = series.values
+                          .map((value, idx) => {
+                            const x =
+                              processLineData.times.length === 1
+                                ? 0
+                                : (idx / (processLineData.times.length - 1)) * 100;
+                            const y = 100 - (value / processLineMax) * 100;
+                            return `${x},${Math.max(0, y)}`;
+                          })
+                          .join(" ");
+                        const color = linePalette[seriesIdx % linePalette.length];
+                        return (
+                          <g key={`series-${series.label}`}>
+                            <polyline fill="none" stroke={color} strokeWidth="1.8" points={points} />
+                            {series.values.map((value, idx) => {
+                              const cx =
+                                processLineData.times.length === 1
+                                  ? 0
+                                  : (idx / (processLineData.times.length - 1)) * 100;
+                              const cy = 100 - (value / processLineMax) * 100;
+                              return (
+                                <circle
+                                  key={`dot-${series.label}-${idx}`}
+                                  cx={cx}
+                                  cy={Math.max(0, cy)}
+                                  r="1"
+                                  fill={color}
+                                />
+                              );
+                            })}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
+                      <span>{formatTimeLabel(processLineData.times[0])}</span>
+                      <span>
+                        {formatTimeLabel(
+                          processLineData.times[Math.floor((processLineData.times.length - 1) / 2)],
+                        )}
+                      </span>
+                      <span>{formatTimeLabel(processLineData.times[processLineData.times.length - 1])}</span>
+                    </div>
+                  </>
+                )}
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                  {graphEntries.map((entry) => (
-                    <div key={`legend-${entry.key}`} className="rounded-lg border border-border px-2 py-1">
-                      <div className="truncate text-muted">{entry.label}</div>
-                      <div className="font-mono">{entry.value}</div>
+                  {processLineData.series.map((series, idx) => (
+                    <div key={`legend-${series.label}`} className="rounded-lg border border-border px-2 py-1">
+                      <div className="truncate text-muted">{series.label}</div>
+                      <div className="font-mono" style={{ color: linePalette[idx % linePalette.length] }}>
+                        {selectedMetricLabel}
+                      </div>
                     </div>
                   ))}
                 </div>
