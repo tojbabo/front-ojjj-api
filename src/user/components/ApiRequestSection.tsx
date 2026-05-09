@@ -4,18 +4,6 @@ import { RequestAPIList, RequestAPIService, RequestReleaseToken } from "@/src/us
 import { useAuthStore } from "@/src/auth/store/authStore";
 import { apiList, ApiDocument } from "@/src/constants/apilist";
 
-type RequestApiItem = {
-    id: number;
-    name: string;
-    description: string;
-    tokenKey: string | undefined;
-};
-
-type ApiTokenItem = {
-    api?: number | string;
-    token?: string;
-};
-
 const TOKEN_DISPLAY_LENGTH = 24;
 
 const defaultRequestApiList: RequestApiItem[] = apiList.map((api: ApiDocument) => ({

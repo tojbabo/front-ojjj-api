@@ -2,24 +2,7 @@
 
 import { apiList, ApiDocument } from "@/src/constants/apilist";
 import { useMemo, useState } from "react";
-
-type ResultTab = "graph" | "list";
-type RequestState = "idle" | "loading" | "success" | "error";
-type ParamMap = Record<string, string>;
-type GraphType = "bar" | "line";
-type UsageMetric = "cpu" | "mem" | "time";
-type ProcessLineSeries = {
-  label: string;
-  values: number[];
-};
-type UsagePoint = {
-  label: string;
-  cpu: number;
-  mem: number;
-  time: number;
-};
-
-const API_BASE_URL = "http://localhost:3000";
+import { RequestWindowProcs } from "../api/userApi";
 
 const parseParameterKeys = (parameterText: string): string[] => {
   const trimmed = parameterText.trim();
@@ -257,22 +240,8 @@ export default function ApiExampleSection() {
     setRequestState("loading");
     setErrorMessage("");
     try {
-      const endpoint = `${API_BASE_URL}/api/user/winprocs`;
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestPayload),
-      });
-
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const message =
-          (typeof payload?.message === "string" && payload.message) || "요청 처리에 실패했습니다.";
-        throw new Error(message);
-      }
-
+      const payload = RequestWindowProcs(requestPayload);
       const rows = parseResponseRows(payload);
-
 
       setResponseRows(rows);
       setRequestState("success");
