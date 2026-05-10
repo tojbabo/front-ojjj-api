@@ -3,20 +3,7 @@
 import { apiList, ApiDocument } from "@/src/constants/apilist";
 import { useMemo, useState } from "react";
 import { RequestWindowProcs } from "../api/userApi";
-
-const parseParameterKeys = (parameterText: string): string[] => {
-  const trimmed = parameterText.trim();
-  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return [];
-  const inside = trimmed.slice(1, -1).trim();
-  if (!inside) return [];
-
-  return inside
-    .split(",")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
-    .map((segment) => segment.split(":")[0]?.trim())
-    .filter((key): key is string => Boolean(key));
-};
+import { GetKeysFromDictString, GetTodayyyymmdd, UnknownToNumber } from "@/src/common/utils";
 
 const parseResponseRows = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {
@@ -36,15 +23,6 @@ const parseResponseRows = (value: unknown): Record<string, unknown>[] => {
   }
 
   return [{ value }];
-};
-
-const toNumber = (value: unknown): number => {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : NaN;
-  }
-  return NaN;
 };
 
 const pickTimeValue = (value: Record<string, unknown>): string | null => {
@@ -94,7 +72,7 @@ const extractProcessLineSeries = (
       const timeKey = pickTimeValue(point);
       if (!timeKey) return;
       allTimes.add(timeKey);
-      const metricValue = toNumber(point[metric]);
+      const metricValue = UnknownToNumber(point[metric]);
       valueByTime.set(timeKey, Number.isFinite(metricValue) ? metricValue : 0);
     });
     processMap.set(processName, valueByTime);
@@ -112,9 +90,9 @@ const extractProcessLineSeries = (
 const toUsagePoint = (value: unknown, fallbackId: string): UsagePoint | null => {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
-  const cpu = toNumber(row.cpu);
-  const mem = toNumber(row.mem);
-  const time = toNumber(row.time);
+  const cpu = UnknownToNumber(row.cpu);
+  const mem = UnknownToNumber(row.mem);
+  const time = UnknownToNumber(row.time);
   if ([cpu, mem, time].some((item) => Number.isNaN(item))) return null;
 
   const rawLabel = row.process ?? row.pname ?? fallbackId;
@@ -147,22 +125,15 @@ const extractUsagePoints = (rows: Record<string, unknown>[]): UsagePoint[] => {
   return nested.slice(0, 12);
 };
 
-const formatYyyymmddHhmm = (value: string): string => {
+const FormatToyyyymmdd = (value: string): string => {
   const digitsOnly = value.replace(/\D/g, "").slice(0, 12);
   return digitsOnly;
 };
 
-const getTodayYyyymmdd = (): string => {
-  const now = new Date();
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}${month}${day}`;
-};
 
 const getDefaultParameterValuesForApi = (api?: ApiDocument): ParamMap => {
   if (api?.title !== "windows-usage") return {};
-  const today = getTodayYyyymmdd();
+  const today = GetTodayyyymmdd();
   return {
     stime: `${today}0000`,
     etime: `${today}2359`,
@@ -185,7 +156,7 @@ export default function ApiExampleSection() {
   );
 
   const parameterKeys = useMemo(
-    () => parseParameterKeys(selectedApi?.parameters ?? ""),
+    () => GetKeysFromDictString(selectedApi?.parameters ?? ""),
     [selectedApi?.parameters],
   );
 
@@ -208,7 +179,7 @@ export default function ApiExampleSection() {
 
   const handleChangeParameter = (key: string, value: string) => {
     if (isDatetimeField(key)) {
-      const formatted = formatYyyymmddHhmm(value);
+      const formatted = FormatToyyyymmdd(value);
       setParameterValues((prev) => ({ ...prev, [key]: formatted }));
       return;
     }
@@ -219,9 +190,9 @@ export default function ApiExampleSection() {
     if (!isDatetimeField(key)) return;
     setParameterValues((prev) => {
       const current = prev[key] ?? "";
-      const today = getTodayYyyymmdd();
+      const today = GetTodayyyymmdd();
       const defaultValue = key === "stime" ? `${today}0000` : `${today}2359`;
-      const nextValue = formatYyyymmddHhmm(current);
+      const nextValue = FormatToyyyymmdd(current);
       if (nextValue.length !== 12) return { ...prev, [key]: defaultValue };
       if (current === nextValue) return prev;
       return { ...prev, [key]: nextValue };
