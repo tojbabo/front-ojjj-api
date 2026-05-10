@@ -1,7 +1,3 @@
-export type LoginRequest = {
-  id: string;
-  pw: string;
-};
 
 export type LoginResponse = {
   token?: string;
@@ -10,10 +6,13 @@ export type LoginResponse = {
   [key: string]: unknown;
 };
 
-const API_BASE_URL = "http://localhost:3000";
-const LOGIN_PATH = "/api/auth/login";
-const JOIN_PATH = "/api/auth/join";
-const PATH_CHECK_TOKEN = "/api/auth/refresh";
+export type JoinResponse = {
+  message?: string;
+  accessToken?: string;
+  longtoken?: string;
+  [key: string]: unknown;
+};
+
 
 function getErrorMessage(payload: unknown, fallback: string) {
   if (!payload || typeof payload !== "object") return fallback;
@@ -24,7 +23,12 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return message || fallback;
 }
 
-export async function loginApi(request: LoginRequest): Promise<LoginResponse> {
+/**
+ * id, pw를 통한 로그인 요청
+ * @param request 
+ * @returns 
+ */
+export async function RequestLogin(request: {id:string, pw:string}): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE_URL}${LOGIN_PATH}`, {
     method: "POST",
     credentials: "include",
@@ -47,19 +51,12 @@ export async function loginApi(request: LoginRequest): Promise<LoginResponse> {
   return (await res.json()) as LoginResponse;
 }
 
-export type JoinRequest = {
-  id: string;
-  pw: string;
-};
-
-export type JoinResponse = {
-  message?: string;
-  accessToken?: string;
-  longtoken?: string;
-  [key: string]: unknown;
-};
-
-export async function joinApi(request: JoinRequest): Promise<JoinResponse> {
+/**
+ * 새 id, pw를 통한 회원가입 요청
+ * @param request 
+ * @returns 
+ */
+export async function RequestJoin(request: {id:string, pw:string}): Promise<JoinResponse> {
   const res = await fetch(`${API_BASE_URL}${JOIN_PATH}`, {
     method: "POST",
     credentials: "include",
@@ -83,14 +80,21 @@ export async function joinApi(request: JoinRequest): Promise<JoinResponse> {
   return payload;
 }
 
-export async function logoutApi(): Promise<void> {
+/**
+ * 로그아웃 요청
+ */
+export async function RequestLogout(): Promise<void> {
   await fetch(`${API_BASE_URL}/api/auth/logout`, {
     method: "POST",
     credentials: "include",
   }).catch(() => undefined);
 }
 
-export async function hasRefreshSessionApi(): Promise<any> {
+/**
+ * Session 확인 후 RefreshToken을 확인. 유효한 경우 AccessToken을 발급 받음
+ * @returns AccessToken || null
+ */
+export async function CheckSessionGetAccessToken(): Promise<any> {
   const res = await fetch(`${API_BASE_URL}${PATH_CHECK_TOKEN}`, {
     method: "POST",
     credentials: "include",
@@ -104,23 +108,3 @@ export async function hasRefreshSessionApi(): Promise<any> {
     return payload;
   }
 }
-
-
-export async function ValidToken(): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}${PATH_CHECK_TOKEN}`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    }
-  });
-
-  if(!res.ok){
-    return null;
-  }
-  else{
-    const payload = await res.json().catch(()=>({status: res.status, ok:false}));
-    return payload;
-  }
-}
-

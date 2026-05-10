@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { logoutApi, ValidToken } from "@/src/auth/api/authApi";
+import { RequestLogout, CheckSessionGetAccessToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 export default function HeaderAuthButton() {
@@ -13,7 +13,7 @@ export default function HeaderAuthButton() {
   useEffect(() => {
     if(accessToken == null){
       const valider = async ()=>{
-        const result = await ValidToken();
+        const result = await CheckSessionGetAccessToken();
         if(result != null){
           setToken(result.accessToken);
         }
@@ -23,7 +23,7 @@ export default function HeaderAuthButton() {
   }, []);
 
   const logout = async () => {
-    await logoutApi();
+    await RequestLogout();
     clearAccessToken();
     // window.location.href = "/";
   };

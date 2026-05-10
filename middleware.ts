@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { AUTH_REFRESH_COOKIE } from "@/src/auth/cookieNames";
+
+const AUTH_REFRESH_COOKIE = "refreshToken";
+const AUTH_ACCESS_COOKIE = "accessToken";
 
 function hasSessionCookie(request: NextRequest): boolean {
   const refresh = request.cookies.get(AUTH_REFRESH_COOKIE)?.value;
   return Boolean(refresh?.length);
 }
+
 
 export function middleware(request: NextRequest) {
   if (hasSessionCookie(request)) {

@@ -1,12 +1,12 @@
 import type { LoginRequest, LoginResponse } from "@/src/auth/api/authApi";
-import { loginApi } from "@/src/auth/api/authApi";
+import { RequestLogin } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 // 유즈케이스: 로그인 요청을 수행하고, 필요한 비즈니스 흐름을 담당합니다.
 export async function loginUseCase(
   request: LoginRequest,
 ): Promise<number> {
-  const response = await loginApi(request);
+  const response = await RequestLogin(request);
   const accessToken =
     response.accessToken ??
     (response as { accessToken?: string }).accessToken ??

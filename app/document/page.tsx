@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { apiList } from "@/src/constants/apilist";
+import { apiList } from "@/src/common/const_apilist";
 
 export default function DocumentPage() {
   const [selectedApiId, setSelectedApiId] = useState<number | null>(

@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { RequestAPIList, RequestAPIService, RequestReleaseToken } from "@/src/user/api/userApi";
+import { RequestAPIServiceTokenList, RequestAPIService, RequestReleaseToken } from "@/src/user/api/userApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
-import { apiList, ApiDocument } from "@/src/constants/apilist";
+import { apiList, ApiDocument } from "@/src/common/const_apilist";
 
 const TOKEN_DISPLAY_LENGTH = 24;
 
@@ -52,7 +52,7 @@ export default function ApiRequestSection() {
             }
 
             try {
-                const result = await RequestAPIList(accessToken);
+                const result = await RequestAPIServiceTokenList(accessToken);
                 const tokenlist: ApiTokenItem[] = result;
 
                 const tokenByApiId = new Map<number, string>();

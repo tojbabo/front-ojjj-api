@@ -1,6 +1,6 @@
 "use client";
 
-import { apiList, ApiDocument } from "@/src/constants/apilist";
+import { apiList, ApiDocument } from "@/src/common/const_apilist";
 import { useMemo, useState } from "react";
 import { RequestWindowProcs } from "../api/userApi";
 import { GetKeysFromDictString, GetTodayyyymmdd, UnknownToNumber } from "@/src/common/utils";

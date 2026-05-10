@@ -4,7 +4,7 @@ import ApiRequestSection from "@/src/user/components/ApiRequestSection";
 import ApiExampleSection from "@/src/user/components/ApiExampleSection";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { hasRefreshSessionApi } from "@/src/auth/api/authApi";
+import { CheckSessionGetAccessToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 type UserTab = "status" | "requests" | "usage" | "example";
@@ -124,7 +124,7 @@ export default function UserPage() {
 
     const verifySession = async () => {
       if(accessToken == null){
-        const result = await hasRefreshSessionApi();
+        const result = await CheckSessionGetAccessToken();
         if (!mounted) return;
   
         if(result == null){
