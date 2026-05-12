@@ -3,14 +3,13 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { LoginRequest } from "@/src/auth/api/authApi";
 import { safeNextPath } from "@/src/auth/lib/safeNextPath";
 import { loginUseCase } from "@/src/auth/usecases/loginUseCase";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [request, setRequest] = useState<LoginRequest>({
+  const [request, setRequest] = useState<{id:string, pw:string}>({
     id: "",
     pw: "",
   });

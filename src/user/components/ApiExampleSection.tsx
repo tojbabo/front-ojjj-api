@@ -211,7 +211,8 @@ export default function ApiExampleSection() {
     setRequestState("loading");
     setErrorMessage("");
     try {
-      const payload = RequestWindowProcs(requestPayload);
+      const payload = await RequestWindowProcs(requestPayload);
+      console.log(payload);
       const rows = parseResponseRows(payload);
 
       setResponseRows(rows);
