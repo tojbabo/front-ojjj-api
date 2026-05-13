@@ -50,6 +50,9 @@ const formatTimeLabel = (value: string): string => {
   return value;
 };
 
+const formatMetricTwoDecimals = (value: number): string =>
+  Number.isFinite(value) ? value.toFixed(2) : "-";
+
 const extractProcessLineSeries = (
   rows: Record<string, unknown>[],
   metric: UsageMetric,
@@ -101,28 +104,80 @@ const toUsagePoint = (value: unknown, fallbackId: string): UsagePoint | null => 
   return { label, cpu, mem, time };
 };
 
-const extractUsagePoints = (rows: Record<string, unknown>[]): UsagePoint[] => {
-  const direct = rows
-    .map((row, idx) => toUsagePoint(row, `row-${idx}`))
-    .filter((item): item is UsagePoint => Boolean(item));
-  if (direct.length > 0) return direct.slice(0, 12);
+type BarGraphEntry = {
+  key: string;
+  rank: number;
+  label: string;
+  value: number;
+};
 
-  const nested: UsagePoint[] = [];
+/** 막대 그래프: pname이 같으면 지표 값 합산, 값 큰 순 정렬, rank는 1이 최대값 */
+const buildBarGraphEntries = (
+  rows: Record<string, unknown>[],
+  metric: UsageMetric,
+): BarGraphEntry[] => {
+  const sums = new Map<string, { displayLabel: string; value: number }>();
+
+  const add = (sortKey: string, displayLabel: string, v: number) => {
+    if (!Number.isFinite(v)) return;
+    const cur = sums.get(sortKey);
+    if (cur) {
+      cur.value += v;
+    } else {
+      sums.set(sortKey, { displayLabel, value: v });
+    }
+  };
+
   rows.forEach((row, rowIdx) => {
-    const nestedData = row.data;
-    if (!Array.isArray(nestedData)) return;
-    nestedData.forEach((item, nestedIdx) => {
-      
-      const point = toUsagePoint(item, `row-${rowIdx}-${nestedIdx}`);
+    const rowPname =
+      typeof row.pname === "string" && row.pname.trim().length > 0 ? row.pname.trim() : null;
+    const nestedData = Array.isArray(row.data) ? row.data : null;
+
+    if (nestedData && nestedData.length > 0) {
+      nestedData.forEach((item, itemIdx) => {
+        if (!item || typeof item !== "object") return;
+        const pt = item as Record<string, unknown>;
+        const v = UnknownToNumber(pt[metric]);
+        if (!Number.isFinite(v)) return;
+
+        const processLabel =
+          typeof pt.process === "string" && pt.process.trim().length > 0
+            ? pt.process.trim()
+            : `item-${itemIdx}`;
+
+        if (rowPname) {
+          add(rowPname, rowPname, v);
+        } else {
+          add(`${rowIdx}:${processLabel}`, processLabel, v);
+        }
+      });
+    } else {
+      const point = toUsagePoint(row, `row-${rowIdx}`);
       if (!point) return;
-      const pname = typeof row.pname === "string" ? row.pname : "";
-      if (pname) {
-        point.label = `${pname}:${point.label}`;
+      const v = point[metric];
+      if (!Number.isFinite(v)) return;
+      if (rowPname) {
+        add(rowPname, rowPname, v);
+      } else {
+        add(`${rowIdx}:${point.label}`, point.label, v);
       }
-      nested.push(point);
-    });
+    }
   });
-  return nested.slice(0, 12);
+
+  const sorted = Array.from(sums.entries())
+    .map(([sortKey, { displayLabel, value }]) => ({
+      key: `bar-${sortKey}`,
+      rank: 0,
+      label: displayLabel,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  sorted.forEach((entry, idx) => {
+    entry.rank = idx + 1;
+  });
+
+  return sorted;
 };
 
 const FormatToyyyymmdd = (value: string): string => {
@@ -258,27 +313,14 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
     }
   };
 
-  const usagePoints = useMemo(() => extractUsagePoints(responseRows), [responseRows]);
   const selectedMetricLabel = usageMetric === "cpu" ? "CPU" : usageMetric === "mem" ? "MEM" : "Time";
-  const graphEntries = useMemo(
-    () =>
-      usagePoints.map((point, idx) => ({
-        key: `point-${idx}`,
-        label: point.label,
-        value: point[usageMetric],
-      })),
-    [usagePoints, usageMetric],
+  const barGraphEntries = useMemo(
+    () => buildBarGraphEntries(responseRows, usageMetric),
+    [responseRows, usageMetric],
   );
-  const maxGraphValue = graphEntries.length
-    ? Math.max(...graphEntries.map((entry) => entry.value), 1)
+  const maxBarGraphValue = barGraphEntries.length
+    ? Math.max(...barGraphEntries.map((entry) => entry.value), 1)
     : 1;
-  const linePoints = graphEntries
-    .map((entry, idx) => {
-      const x = graphEntries.length === 1 ? 0 : (idx / (graphEntries.length - 1)) * 100;
-      const y = 100 - (entry.value / maxGraphValue) * 100;
-      return `${x},${Math.max(0, y)}`;
-    })
-    .join(" ");
   const processLineData = useMemo(
     () => extractProcessLineSeries(responseRows, usageMetric),
     [responseRows, usageMetric],
@@ -469,9 +511,7 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
                 </select>
               </div>
             </div>
-            {graphEntries.length === 0 ? (
-              <div className="text-sm text-muted">그래프로 표시할 숫자 데이터가 없습니다.</div>
-            ) : graphType === "line" ? (
+            {graphType === "line" ? (
               <div className="rounded-xl border border-border p-3">
                 <div className="mb-2 text-xs text-muted">
                   시간(X) - {selectedMetricLabel}(Y) 프로세스별 라인 그래프
@@ -538,17 +578,22 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
                   ))}
                 </div>
               </div>
+            ) : barGraphEntries.length === 0 ? (
+              <div className="text-sm text-muted">막대 그래프로 표시할 숫자 데이터가 없습니다.</div>
             ) : (
-              graphEntries.map((entry) => (
+              barGraphEntries.map((entry) => (
                 <div key={entry.key}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-medium">{entry.label}</span>
-                    <span className="font-mono">{entry.value}</span>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 font-medium">
+                      <span className="mr-1.5 tabular-nums text-muted">{entry.rank}.</span>
+                      {entry.label}
+                    </span>
+                    <span className="shrink-0 font-mono">{formatMetricTwoDecimals(entry.value)}</span>
                   </div>
                   <div className="h-2 rounded-full bg-border/50">
                     <div
                       className="h-2 rounded-full bg-[color:var(--brand)]"
-                      style={{ width: `${Math.max((entry.value / maxGraphValue) * 100, 4)}%` }}
+                      style={{ width: `${Math.max((entry.value / maxBarGraphValue) * 100, 4)}%` }}
                     />
                   </div>
                 </div>
