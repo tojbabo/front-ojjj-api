@@ -6,6 +6,30 @@ import {
 } from "@/src/common/const_";
 
 /**
+ * 서버 응답의 tokens 배열을 api id → token 문자열 맵으로 변환합니다.
+ */
+export function buildTokenByApiIdFromList(tokenlist: unknown): Record<number, string> {
+  if (!Array.isArray(tokenlist)) return {};
+  const out: Record<number, string> = {};
+  for (const tokenItem of tokenlist) {
+    if (!tokenItem || typeof tokenItem !== "object") continue;
+    const item = tokenItem as Record<string, unknown>;
+    const apiRaw = item.api;
+    const token = item.token;
+    const apiId =
+      typeof apiRaw === "number"
+        ? apiRaw
+        : typeof apiRaw === "string"
+          ? Number(apiRaw)
+          : NaN;
+    if (!Number.isNaN(apiId) && typeof token === "string") {
+      out[apiId] = token;
+    }
+  }
+  return out;
+}
+
+/**
  * 서버에 사용중인 API Service token list 일괄 요청
  * @param accessToken 
  * @returns api service token lise

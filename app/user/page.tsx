@@ -6,6 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckSessionGetAccessToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
+import {
+  buildTokenByApiIdFromList,
+  RequestAPIServiceTokenList,
+} from "@/src/user/api/userApi";
 
 type UserTab = "status" | "requests" | "usage" | "example";
 
@@ -110,6 +114,7 @@ export default function UserPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<UserTab>("status");
   const [checkingSession, setCheckingSession] = useState(true);
+  const [apiTokenById, setApiTokenById] = useState<Record<number, string>>({});
   const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const setToken = useAuthStore((state)=> state.setAccessToken);
@@ -144,6 +149,31 @@ export default function UserPage() {
       mounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      setApiTokenById({});
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (checkingSession || !accessToken) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await RequestAPIServiceTokenList(accessToken);
+        const map = buildTokenByApiIdFromList(raw);
+        if (!cancelled) setApiTokenById(map);
+      } catch {
+        if (!cancelled) setApiTokenById({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [checkingSession, accessToken]);
 
   if (checkingSession) {
     return (
@@ -279,7 +309,7 @@ export default function UserPage() {
         ) : null}
 
         {activeTab === "requests" ? (
-          <ApiRequestSection/>
+          <ApiRequestSection tokenByApiId={apiTokenById} setTokenByApiId={setApiTokenById} />
         ) : null}
 
         {activeTab === "usage" ? (
@@ -306,7 +336,7 @@ export default function UserPage() {
         ) : null}
 
         {activeTab === "example" ? (
-          <ApiExampleSection />
+          <ApiExampleSection tokenByApiId={apiTokenById} />
         ) : null}
       </section>
     </main>

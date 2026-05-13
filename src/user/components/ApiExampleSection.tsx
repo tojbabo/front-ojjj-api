@@ -1,7 +1,7 @@
 "use client";
 
 import { apiList, ApiDocument } from "@/src/common/const_apilist";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RequestWindowProcs } from "../api/userApi";
 import { GetKeysFromDictString, GetTodayyyymmdd, UnknownToNumber } from "@/src/common/utils";
 
@@ -131,17 +131,39 @@ const FormatToyyyymmdd = (value: string): string => {
 };
 
 
-const getDefaultParameterValuesForApi = (api?: ApiDocument): ParamMap => {
-  if (api?.title !== "windows-usage") return {};
-  const today = GetTodayyyymmdd();
-  return {
-    stime: `${today}0000`,
-    etime: `${today}2359`,
-    size: '100'
-  };
+const getDefaultParameterValuesForApi = (
+  api?: ApiDocument,
+  savedTokenByApiId?: Record<number, string>,
+): ParamMap => {
+  const keys = GetKeysFromDictString(api?.parameters ?? "");
+  const rawSaved = api != null ? savedTokenByApiId?.[api.id] : undefined;
+  const savedToken = typeof rawSaved === "string" && rawSaved.trim() ? rawSaved.trim() : "";
+
+  if (api?.title === "windows-usage") {
+    const today = GetTodayyyymmdd();
+    const base: ParamMap = {
+      stime: `${today}0000`,
+      etime: `${today}2359`,
+      size: "100",
+    };
+    if (keys.includes("token")) {
+      base.token = savedToken;
+    }
+    return base;
+  }
+
+  if (keys.includes("token")) {
+    return { token: savedToken };
+  }
+
+  return {};
 };
 
-export default function ApiExampleSection() {
+type ApiExampleSectionProps = {
+  tokenByApiId: Record<number, string>;
+};
+
+export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionProps) {
   const [selectedApiId, setSelectedApiId] = useState<number>(apiList[0]?.id ?? 0);
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [resultTab, setResultTab] = useState<ResultTab>("graph");
@@ -161,7 +183,7 @@ export default function ApiExampleSection() {
   );
 
   const [parameterValues, setParameterValues] = useState<ParamMap>(() =>
-    getDefaultParameterValuesForApi(apiList[0]),
+    getDefaultParameterValuesForApi(apiList[0], tokenByApiId),
   );
 
   const isWindowsUsageApi = selectedApi?.title === "windows-usage";
@@ -171,11 +193,22 @@ export default function ApiExampleSection() {
   const handleSelectApi = (nextApiId: number) => {
     const nextApi = apiList.find((item) => item.id === nextApiId);
     setSelectedApiId(nextApiId);
-    setParameterValues(getDefaultParameterValuesForApi(nextApi));
+    setParameterValues(getDefaultParameterValuesForApi(nextApi, tokenByApiId));
     setResponseRows([]);
     setRequestState("idle");
     setErrorMessage("");
   };
+
+  useEffect(() => {
+    if (!parameterKeys.includes("token")) return;
+    const saved = tokenByApiId[selectedApiId]?.trim() ?? "";
+    if (!saved) return;
+    setParameterValues((prev) => {
+      const current = prev.token ?? "";
+      if (current.trim() !== "") return prev;
+      return { ...prev, token: saved };
+    });
+  }, [tokenByApiId, selectedApiId, parameterKeys]);
 
   const handleChangeParameter = (key: string, value: string) => {
     if (isDatetimeField(key)) {
@@ -266,6 +299,28 @@ export default function ApiExampleSection() {
     "#4f46e5",
   ];
 
+  const paramInputClassName =
+    "h-10 w-full rounded-lg border border-border bg-card px-3 outline-none focus:border-[color:var(--brand)]";
+
+  const renderParamField = (key: string) => (
+    <label key={key} className="flex flex-col gap-1 text-sm">
+      <span className="text-xs text-muted">{key}</span>
+      <input
+        value={parameterValues[key] ?? ""}
+        onChange={(e) => handleChangeParameter(key, e.target.value)}
+        onBlur={() => handleBlurParameter(key)}
+        className={paramInputClassName}
+        placeholder={isDatetimeField(key) ? "YYYYMMDDhhmm" : `${key} 값을 입력하세요`}
+        style={{maxWidth:"20rem"}}
+      />
+    </label>
+  );
+
+  const windowsUsageLayoutKeys = new Set(["token", "stime", "etime", "size"]);
+  const windowsUsageExtraKeys = isWindowsUsageApi
+    ? parameterKeys.filter((k) => !windowsUsageLayoutKeys.has(k))
+    : [];
+
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
       <h2 className="text-lg font-semibold">API 예시 테스트</h2>
@@ -304,24 +359,25 @@ export default function ApiExampleSection() {
             선택 API: <span className="font-mono">{selectedApi?.title ?? "-"}</span>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4">
             {parameterKeys.length === 0 ? (
               <div className="rounded-lg border border-border px-3 py-2 text-sm text-muted">
                 설정할 파라미터가 없습니다.
               </div>
+            ) : isWindowsUsageApi ? (
+              <div className="flex flex-col gap-4">
+                {parameterKeys.includes("token") ? renderParamField("token") : null}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {parameterKeys.includes("stime") ? renderParamField("stime") : null}
+                  {parameterKeys.includes("etime") ? renderParamField("etime") : null}
+                </div>
+                {parameterKeys.includes("size") ? renderParamField("size") : null}
+                {windowsUsageExtraKeys.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">{windowsUsageExtraKeys.map(renderParamField)}</div>
+                ) : null}
+              </div>
             ) : (
-              parameterKeys.map((key) => (
-                <label key={key} className="flex flex-col gap-1 text-sm">
-                  <span className="text-xs text-muted">{key}</span>
-                  <input
-                    value={parameterValues[key] ?? ""}
-                    onChange={(e) => handleChangeParameter(key, e.target.value)}
-                    onBlur={() => handleBlurParameter(key)}
-                    className="h-10 rounded-lg border border-border bg-card px-3 outline-none focus:border-[color:var(--brand)]"
-                    placeholder={isDatetimeField(key) ? "YYYYMMDDhhmm" : `${key} 값을 입력하세요`}
-                  />
-                </label>
-              ))
+              <div className="grid gap-3 sm:grid-cols-2">{parameterKeys.map(renderParamField)}</div>
             )}
           </div>
 

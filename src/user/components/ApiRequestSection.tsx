@@ -1,10 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
-import { RequestAPIServiceTokenList, RequestAPIService, RequestReleaseToken } from "@/src/user/api/userApi";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { RequestAPIService, RequestReleaseToken } from "@/src/user/api/userApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 import { apiList, ApiDocument } from "@/src/common/const_apilist";
 
-const TOKEN_DISPLAY_LENGTH = 24;
+type ApiRequestSectionProps = {
+    tokenByApiId: Record<number, string>;
+    setTokenByApiId: Dispatch<SetStateAction<Record<number, string>>>;
+};
 
 const defaultRequestApiList: RequestApiItem[] = apiList.map((api: ApiDocument) => ({
     id: api.id,
@@ -39,43 +42,17 @@ const extractTokenKey = (value: unknown): string | undefined => {
     return undefined;
 };
 
-export default function ApiRequestSection() {
+export default function ApiRequestSection({ tokenByApiId, setTokenByApiId }: ApiRequestSectionProps) {
     const accessToken = useAuthStore((state) => state.accessToken);
-    const [requestApiList, setRequestApiList] = useState<RequestApiItem[]>(defaultRequestApiList);
+    const requestApiList = useMemo<RequestApiItem[]>(
+        () =>
+            defaultRequestApiList.map((item) => ({
+                ...item,
+                tokenKey: tokenByApiId[item.id],
+            })),
+        [tokenByApiId],
+    );
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-    useEffect(() => {
-        const getApiList = async () => {
-            if (!accessToken) {
-                setRequestApiList(defaultRequestApiList);
-                return;
-            }
-
-            try {
-                const result = await RequestAPIServiceTokenList(accessToken);
-                const tokenlist: ApiTokenItem[] = result;
-
-                const tokenByApiId = new Map<number, string>();
-                tokenlist.forEach((tokenItem) => {
-                    const apiId = Number(tokenItem.api);
-                    if (!Number.isNaN(apiId) && typeof tokenItem.token === "string") {
-                        tokenByApiId.set(apiId, tokenItem.token);
-                    }
-                });
-
-                const mergedRequestApiList: RequestApiItem[] = defaultRequestApiList.map((item) => ({
-                    ...item,
-                    tokenKey: tokenByApiId.get(item.id),
-                }));
-
-                setRequestApiList(mergedRequestApiList);
-            } catch {
-                setRequestApiList(defaultRequestApiList);
-            }
-        };
-
-        getApiList();
-    }, [accessToken]);
 
     const handleCopyToken = async (tokenKey: string) => {
         try {
@@ -97,13 +74,10 @@ export default function ApiRequestSection() {
             const nextTokenKey = extractTokenKey(receivedtoken);
 
             if (nextTokenKey) {
-                setRequestApiList((prev) =>
-                    prev.map((item) =>
-                        item.id === serviceId
-                            ? { ...item, tokenKey: String(nextTokenKey) }
-                            : item
-                    )
-                );
+                setTokenByApiId((prev) => ({
+                    ...prev,
+                    [serviceId]: String(nextTokenKey),
+                }));
             }
         }
         else{
@@ -113,23 +87,18 @@ export default function ApiRequestSection() {
                 (isObject(result) && (result.result === true || result.success === true));
 
             if (isReleaseSuccess) {
-                setRequestApiList((prev) =>
-                    prev.map((item) =>
-                        item.id === serviceId
-                            ? { ...item, tokenKey: undefined }
-                            : item
-                    )
-                );
+                setTokenByApiId((prev) => {
+                    const next = { ...prev };
+                    delete next[serviceId];
+                    return next;
+                });
             }
 
         }
     };
 
-    const getDisplayToken = (tokenKey: string|undefined) => {
-        if (!tokenKey) return "-";
-        if (tokenKey.length <= TOKEN_DISPLAY_LENGTH) return tokenKey;
-        return `${tokenKey.slice(0, TOKEN_DISPLAY_LENGTH)}...`;
-    };
+    const hasUsableToken = (tokenKey: string | undefined) =>
+        Boolean(tokenKey && tokenKey.trim().length > 0);
 
     return (
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
@@ -147,14 +116,25 @@ export default function ApiRequestSection() {
                         <div className="text-sm text-muted">{api.description}</div>
                         <div className="flex flex-col gap-2">
                         <div key={`${api.name}`} className="flex items-center gap-2">
-                            <span className="inline-block w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground">
-                                {getDisplayToken(api.tokenKey)}
-                            </span>
+                            <input
+                                type="text"
+                                value={api.tokenKey ?? ""}
+                                onChange={(e) =>
+                                    setTokenByApiId((prev) => ({
+                                        ...prev,
+                                        [api.id]: e.target.value,
+                                    }))
+                                }
+                                placeholder="토큰이 없습니다. 신청하기를 눌러 발급받으세요."
+                                className="inline-block h-9 w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground outline-none focus:border-[color:var(--brand)]"
+                                autoComplete="off"
+                                spellCheck={false}
+                            />
                             <button
                                 type="button"
                                 onClick={() => api.tokenKey && handleCopyToken(api.tokenKey)}
-                                disabled={!api.tokenKey}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-[color:var(--brand-weak)] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                                disabled={!hasUsableToken(api.tokenKey)}
+                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-[color:var(--brand-weak)] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
                                 aria-label={`${api.name} 토큰 키 복사`}>
                                 <svg
                                 width="14"
@@ -187,10 +167,10 @@ export default function ApiRequestSection() {
                         </div>
                         <div className="flex items-center justify-end gap-2">
                         <button type="button"
-                            onClick={() =>handleRequestServiceTouch(api.id, api.tokenKey == undefined)}
+                            onClick={() =>handleRequestServiceTouch(api.id, !hasUsableToken(api.tokenKey))}
                             className="inline-flex h-9 items-center justify-center rounded-full bg-[color:var(--brand)] 
                             px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90">
-                            {api.tokenKey != undefined ? "반납하기" : "신청하기"}
+                            {hasUsableToken(api.tokenKey) ? "반납하기" : "신청하기"}
                         </button>
                         </div>
                     </div>
