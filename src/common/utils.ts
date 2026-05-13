@@ -29,3 +29,84 @@ export const GetTodayyyymmdd = (): string => {
     const day = String(now.getDate()).padStart(2, "0");
     return `${year}${month}${day}`;
 };
+
+const indentUnit = "  ";
+
+function prettyPrintLooseBraces(input: string): string {
+    let i = 0;
+    const len = input.length;
+    let out = "";
+    let depth = 0;
+
+    const skipWs = () => {
+        while (i < len && /\s/.test(input[i]!)) i += 1;
+    };
+
+    const currentIndent = () => indentUnit.repeat(depth);
+
+    while (i < len) {
+        const c = input[i]!;
+        if (/\s/.test(c)) {
+            i += 1;
+            continue;
+        }
+        if (c === "{") {
+            i += 1;
+            skipWs();
+            if (input[i] === "}") {
+                i += 1;
+                out += "{}";
+                continue;
+            }
+            out += "{\n";
+            depth += 1;
+            out += currentIndent();
+            continue;
+        }
+        if (c === "}") {
+            depth = Math.max(0, depth - 1);
+            out += `\n${currentIndent()}}`;
+            i += 1;
+            continue;
+        }
+        if (c === "[") {
+            i += 1;
+            skipWs();
+            if (input[i] === "]") {
+                i += 1;
+                out += "[]";
+                continue;
+            }
+            out += "[\n";
+            depth += 1;
+            out += currentIndent();
+            continue;
+        }
+        if (c === "]") {
+            depth = Math.max(0, depth - 1);
+            out += `\n${currentIndent()}]`;
+            i += 1;
+            continue;
+        }
+        if (c === ",") {
+            i += 1;
+            out += `,\n${currentIndent()}`;
+            skipWs();
+            continue;
+        }
+        out += c;
+        i += 1;
+    }
+    return out;
+}
+
+/** API 문서용: JSON이면 2-space 포맷, 아니면 `{`/`[` 기준으로 개행·들여쓰기 */
+export const prettyPrintApiField = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    try {
+        return JSON.stringify(JSON.parse(trimmed), null, 2);
+    } catch {
+        return prettyPrintLooseBraces(trimmed);
+    }
+};

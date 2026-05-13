@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { apiList } from "@/src/common/const_apilist";
+import { prettyPrintApiField } from "@/src/common/utils";
 
 export default function DocumentPage() {
   const [selectedApiId, setSelectedApiId] = useState<number | null>(
@@ -84,19 +85,23 @@ export default function DocumentPage() {
                       <td className="px-4 py-3">{selectedApi.summary}</td>
                     </tr>
                     <tr className="border-b border-border">
-                      <th className="bg-background px-4 py-3 text-left font-semibold">
+                      <th className="align-top bg-background px-4 py-3 text-left font-semibold">
                         파라미터
                       </th>
-                      <td className="whitespace-pre-wrap px-4 py-3">
-                        {selectedApi.parameters}
+                      <td className="px-4 py-3">
+                        <pre className="m-0 max-h-[min(70vh,28rem)] overflow-auto rounded-lg border border-border bg-background/80 p-3 font-mono text-xs leading-relaxed text-foreground [tab-size:2]">
+                          {prettyPrintApiField(selectedApi.parameters)}
+                        </pre>
                       </td>
                     </tr>
                     <tr>
-                      <th className="bg-background px-4 py-3 text-left font-semibold">
+                      <th className="align-top bg-background px-4 py-3 text-left font-semibold">
                         데이터
                       </th>
-                      <td className="whitespace-pre-wrap px-4 py-3">
-                        {selectedApi.data}
+                      <td className="px-4 py-3">
+                        <pre className="m-0 max-h-[min(70vh,28rem)] overflow-auto rounded-lg border border-border bg-background/80 p-3 font-mono text-xs leading-relaxed text-foreground [tab-size:2]">
+                          {prettyPrintApiField(selectedApi.data)}
+                        </pre>
                       </td>
                     </tr>
                   </tbody>
