@@ -99,7 +99,7 @@ export async function RequestReleaseToken(accessToken:string, serviceid: number)
  * @returns 
  */
 export async function RequestWindowProcs(params:Record<string,string>): Promise<any>{
-  const endpoint = `${API_BASE_URL}/api/user/winprocs`;
+  const endpoint = `${API_BASE_URL}/api/winprocs`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
