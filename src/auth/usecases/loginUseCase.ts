@@ -12,7 +12,9 @@ export async function loginUseCase(
     response.token;
 
   if (accessToken) {
-    useAuthStore.getState().setAccessToken(String(accessToken));
+    const auth = useAuthStore.getState();
+    auth.setAccessToken(String(accessToken));
+    auth.setLoginCredentials(request.id, request.pw);
     return 1;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { apiList, ApiDocument } from "@/src/common/const_apilist";
+import { useAuthStore } from "@/src/auth/store/authStore";
 import { useEffect, useMemo, useState } from "react";
 import { RequestWindowProcs } from "../api/userApi";
 import { GetKeysFromDictString, GetTodayyyymmdd, UnknownToNumber } from "@/src/common/utils";
@@ -186,13 +187,31 @@ const FormatToyyyymmdd = (value: string): string => {
 };
 
 
+type LoginCredentials = {
+  id?: string;
+  pw?: string;
+};
+
 const getDefaultParameterValuesForApi = (
   api?: ApiDocument,
   savedTokenByApiId?: Record<number, string>,
+  credentials?: LoginCredentials,
 ): ParamMap => {
   const keys = GetKeysFromDictString(api?.parameters ?? "");
   const rawSaved = api != null ? savedTokenByApiId?.[api.id] : undefined;
   const savedToken = typeof rawSaved === "string" && rawSaved.trim() ? rawSaved.trim() : "";
+
+  if (api?.title === "use-amount" || api?.id === 0) {
+    const today = GetTodayyyymmdd();
+    return {
+      id: credentials?.id?.trim() ?? "",
+      pw: credentials?.pw ?? "",
+      serviceid: "1",
+      stime: `${today}0000`,
+      etime: `${today}2359`,
+      size: "100",
+    };
+  }
 
   if (api?.title === "windows-usage") {
     const today = GetTodayyyymmdd();
@@ -219,6 +238,16 @@ type ApiExampleSectionProps = {
 };
 
 export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionProps) {
+  const loginId = useAuthStore((state) => state.loginId);
+  const loginPw = useAuthStore((state) => state.loginPw);
+  const loginCredentials = useMemo<LoginCredentials>(
+    () => ({
+      id: loginId?.trim() ?? "",
+      pw: loginPw ?? "",
+    }),
+    [loginId, loginPw],
+  );
+
   const [selectedApiId, setSelectedApiId] = useState<number>(apiList[0]?.id ?? 0);
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [resultTab, setResultTab] = useState<ResultTab>("graph");
@@ -238,17 +267,22 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
   );
 
   const [parameterValues, setParameterValues] = useState<ParamMap>(() =>
-    getDefaultParameterValuesForApi(apiList[0], tokenByApiId),
+    getDefaultParameterValuesForApi(apiList[0], tokenByApiId, {
+      id: loginId?.trim() ?? "",
+      pw: loginPw ?? "",
+    }),
   );
 
   const isWindowsUsageApi = selectedApi?.title === "windows-usage";
+  const isUseAmountApi = selectedApi?.title === "use-amount" || selectedApi?.id === 0;
 
-  const isDatetimeField = (key: string) => isWindowsUsageApi && (key === "stime" || key === "etime");
+  const isDatetimeField = (key: string) =>
+    (isWindowsUsageApi || isUseAmountApi) && (key === "stime" || key === "etime");
 
   const handleSelectApi = (nextApiId: number) => {
     const nextApi = apiList.find((item) => item.id === nextApiId);
     setSelectedApiId(nextApiId);
-    setParameterValues(getDefaultParameterValuesForApi(nextApi, tokenByApiId));
+    setParameterValues(getDefaultParameterValuesForApi(nextApi, tokenByApiId, loginCredentials));
     setResponseRows([]);
     setRequestState("idle");
     setErrorMessage("");
@@ -264,6 +298,20 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
       return { ...prev, token: saved };
     });
   }, [tokenByApiId, selectedApiId, parameterKeys]);
+
+  useEffect(() => {
+    if (!isUseAmountApi) return;
+    const id = loginCredentials.id ?? "";
+    const pw = loginCredentials.pw ?? "";
+    if (!id && !pw) return;
+    setParameterValues((prev) => {
+      const next = { ...prev };
+      if (!(prev.id ?? "").trim() && id) next.id = id;
+      if (!(prev.pw ?? "").trim() && pw) next.pw = pw;
+      if (next.id === prev.id && next.pw === prev.pw) return prev;
+      return next;
+    });
+  }, [isUseAmountApi, loginCredentials]);
 
   const handleChangeParameter = (key: string, value: string) => {
     if (isDatetimeField(key)) {

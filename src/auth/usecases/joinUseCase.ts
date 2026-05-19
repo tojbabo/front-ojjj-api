@@ -9,7 +9,9 @@ export async function joinUseCase(
   const accessToken = response.accessToken;
 
   if (accessToken) {
-    useAuthStore.getState().setAccessToken(String(accessToken));
+    const auth = useAuthStore.getState();
+    auth.setAccessToken(String(accessToken));
+    auth.setLoginCredentials(request.id, request.pw);
   }
 
   return response;

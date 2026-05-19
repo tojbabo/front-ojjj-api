@@ -16,6 +16,10 @@ const defaultRequestApiList: RequestApiItem[] = apiList.map((api: ApiDocument) =
     tokenKey: undefined,
 }));
 
+const BASIC_SERVICE_LABEL = "기본 서비스";
+
+const isBasicService = (serviceId: number) => serviceId === 0;
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === "object" && value !== null;
 
@@ -67,7 +71,7 @@ export default function ApiRequestSection({ tokenByApiId, setTokenByApiId }: Api
     };
 
     const handleRequestServiceTouch = async (serviceId: number, flag: boolean) => {
-        if (!accessToken) return;
+        if (!accessToken || isBasicService(serviceId)) return;
         
         if(flag){
             const receivedtoken = await RequestAPIService(accessToken, serviceId);
@@ -118,22 +122,27 @@ export default function ApiRequestSection({ tokenByApiId, setTokenByApiId }: Api
                         <div key={`${api.name}`} className="flex items-center gap-2">
                             <input
                                 type="text"
-                                value={api.tokenKey ?? ""}
+                                value={
+                                    isBasicService(api.id)
+                                        ? BASIC_SERVICE_LABEL
+                                        : (api.tokenKey ?? "")
+                                }
                                 onChange={(e) =>
                                     setTokenByApiId((prev) => ({
                                         ...prev,
                                         [api.id]: e.target.value,
                                     }))
                                 }
+                                readOnly={isBasicService(api.id)}
                                 placeholder="토큰이 없습니다. 신청하기를 눌러 발급받으세요."
-                                className="inline-block h-9 w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground outline-none focus:border-[color:var(--brand)]"
+                                className="inline-block h-9 w-[250px] min-w-[250px] rounded-lg border border-border bg-card px-2 py-1 font-mono text-xs text-foreground outline-none focus:border-[color:var(--brand)] read-only:cursor-default read-only:text-muted"
                                 autoComplete="off"
                                 spellCheck={false}
                             />
                             <button
                                 type="button"
                                 onClick={() => api.tokenKey && handleCopyToken(api.tokenKey)}
-                                disabled={!hasUsableToken(api.tokenKey)}
+                                disabled={isBasicService(api.id) || !hasUsableToken(api.tokenKey)}
                                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted transition-colors hover:bg-[color:var(--brand-weak)] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
                                 aria-label={`${api.name} 토큰 키 복사`}>
                                 <svg
@@ -168,8 +177,9 @@ export default function ApiRequestSection({ tokenByApiId, setTokenByApiId }: Api
                         <div className="flex items-center justify-end gap-2">
                         <button type="button"
                             onClick={() =>handleRequestServiceTouch(api.id, !hasUsableToken(api.tokenKey))}
+                            disabled={isBasicService(api.id)}
                             className="inline-flex h-9 items-center justify-center rounded-full bg-[color:var(--brand)] 
-                            px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90">
+                            px-4 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
                             {hasUsableToken(api.tokenKey) ? "반납하기" : "신청하기"}
                         </button>
                         </div>
