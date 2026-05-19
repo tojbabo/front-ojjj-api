@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useEffect, useState } from "react";
 
 type AuthState = {
   accessToken: string | null;
@@ -25,8 +26,33 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         accessToken: state.accessToken,
         loginId: state.loginId,
+        loginPw: state.loginPw,
       }),
     },
   ),
 );
+
+export function useAuthHydrated() {
+  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+
+  useEffect(() => {
+    setHydrated(useAuthStore.persist.hasHydrated());
+    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+
+  return hydrated;
+}
+
+export function getLoginCredentialsFromStore(): LoginCredentials {
+  const { loginId, loginPw } = useAuthStore.getState();
+  return {
+    id: loginId?.trim() ?? "",
+    pw: loginPw ?? "",
+  };
+}
+
+type LoginCredentials = {
+  id: string;
+  pw: string;
+};
 

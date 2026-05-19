@@ -1,9 +1,13 @@
 "use client";
 
 import { apiList, ApiDocument } from "@/src/common/const_apilist";
-import { useAuthStore } from "@/src/auth/store/authStore";
+import {
+  getLoginCredentialsFromStore,
+  useAuthHydrated,
+  useAuthStore,
+} from "@/src/auth/store/authStore";
 import { useEffect, useMemo, useState } from "react";
-import { RequestWindowProcs } from "../api/userApi";
+import { RequestUsage, RequestWindowProcs } from "../api/userApi";
 import { GetKeysFromDictString, GetTodayyyymmdd, UnknownToNumber } from "@/src/common/utils";
 
 const parseResponseRows = (value: unknown): Record<string, unknown>[] => {
@@ -238,13 +242,11 @@ type ApiExampleSectionProps = {
 };
 
 export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionProps) {
+  const authHydrated = useAuthHydrated();
   const loginId = useAuthStore((state) => state.loginId);
   const loginPw = useAuthStore((state) => state.loginPw);
   const loginCredentials = useMemo<LoginCredentials>(
-    () => ({
-      id: loginId?.trim() ?? "",
-      pw: loginPw ?? "",
-    }),
+    () => getLoginCredentialsFromStore(),
     [loginId, loginPw],
   );
 
@@ -267,10 +269,7 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
   );
 
   const [parameterValues, setParameterValues] = useState<ParamMap>(() =>
-    getDefaultParameterValuesForApi(apiList[0], tokenByApiId, {
-      id: loginId?.trim() ?? "",
-      pw: loginPw ?? "",
-    }),
+    getDefaultParameterValuesForApi(apiList[0], tokenByApiId, getLoginCredentialsFromStore()),
   );
 
   const isWindowsUsageApi = selectedApi?.title === "windows-usage";
@@ -282,11 +281,20 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
   const handleSelectApi = (nextApiId: number) => {
     const nextApi = apiList.find((item) => item.id === nextApiId);
     setSelectedApiId(nextApiId);
-    setParameterValues(getDefaultParameterValuesForApi(nextApi, tokenByApiId, loginCredentials));
+    setParameterValues(
+      getDefaultParameterValuesForApi(nextApi, tokenByApiId, getLoginCredentialsFromStore()),
+    );
     setResponseRows([]);
     setRequestState("idle");
     setErrorMessage("");
   };
+
+  useEffect(() => {
+    if (!authHydrated || !isUseAmountApi) return;
+    setParameterValues(
+      getDefaultParameterValuesForApi(selectedApi, tokenByApiId, getLoginCredentialsFromStore()),
+    );
+  }, [authHydrated, isUseAmountApi, selectedApiId, loginId, loginPw, selectedApi]);
 
   useEffect(() => {
     if (!parameterKeys.includes("token")) return;
@@ -298,20 +306,6 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
       return { ...prev, token: saved };
     });
   }, [tokenByApiId, selectedApiId, parameterKeys]);
-
-  useEffect(() => {
-    if (!isUseAmountApi) return;
-    const id = loginCredentials.id ?? "";
-    const pw = loginCredentials.pw ?? "";
-    if (!id && !pw) return;
-    setParameterValues((prev) => {
-      const next = { ...prev };
-      if (!(prev.id ?? "").trim() && id) next.id = id;
-      if (!(prev.pw ?? "").trim() && pw) next.pw = pw;
-      if (next.id === prev.id && next.pw === prev.pw) return prev;
-      return next;
-    });
-  }, [isUseAmountApi, loginCredentials]);
 
   const handleChangeParameter = (key: string, value: string) => {
     if (isDatetimeField(key)) {
@@ -347,8 +341,15 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
     setRequestState("loading");
     setErrorMessage("");
     try {
+      if (isUseAmountApi) {
+        const payload = await RequestUsage(requestPayload);
+        console.log(payload);
+        setResponseRows([]);
+        setRequestState("success");
+        return;
+      }
+
       const payload = await RequestWindowProcs(requestPayload);
-      console.log(payload);
       const rows = parseResponseRows(payload);
 
       setResponseRows(rows);
@@ -392,16 +393,20 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
   const paramInputClassName =
     "h-10 w-full rounded-lg border border-border bg-card px-3 outline-none focus:border-[color:var(--brand)]";
 
+  const isPasswordField = (key: string) => key === "pw";
+
   const renderParamField = (key: string) => (
     <label key={key} className="flex flex-col gap-1 text-sm">
       <span className="text-xs text-muted">{key}</span>
       <input
+        type={isPasswordField(key) ? "password" : "text"}
         value={parameterValues[key] ?? ""}
         onChange={(e) => handleChangeParameter(key, e.target.value)}
         onBlur={() => handleBlurParameter(key)}
         className={paramInputClassName}
         placeholder={isDatetimeField(key) ? "YYYYMMDDhhmm" : `${key} 값을 입력하세요`}
-        style={{maxWidth:"20rem"}}
+        autoComplete={key === "id" ? "username" : isPasswordField(key) ? "current-password" : "off"}
+        style={{ maxWidth: "20rem" }}
       />
     </label>
   );

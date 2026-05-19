@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { RequestLogout, CheckSessionGetAccessToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 export default function HeaderAuthButton() {
+  const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const setToken = useAuthStore((state)=> state.setAccessToken);
@@ -25,7 +27,7 @@ export default function HeaderAuthButton() {
   const logout = async () => {
     await RequestLogout();
     clearAccessToken();
-    // window.location.href = "/";
+    router.replace("/");
   };
 
   if (!accessToken) {

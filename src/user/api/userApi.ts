@@ -113,3 +113,20 @@ export async function RequestWindowProcs(params:Record<string,string>): Promise<
       }
       return payload;
 }
+
+
+export async function RequestUsage(params:Record<string,string>): Promise<any>{
+  const endpoint = `${API_BASE_URL}/api/usage`;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message = (typeof payload?.message === "string" && payload.message) || "요청 처리에 실패했습니다.";
+        throw new Error(message);
+      }
+      return payload;
+}

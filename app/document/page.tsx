@@ -85,6 +85,14 @@ export default function DocumentPage() {
                       <td className="px-4 py-3">{selectedApi.summary}</td>
                     </tr>
                     <tr className="border-b border-border">
+                      <th className="bg-background px-4 py-3 text-left font-semibold">
+                        API URL
+                      </th>
+                      <td className="px-4 py-3 font-mono text-sm">
+                        {selectedApi["API-URL"]}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-border">
                       <th className="align-top bg-background px-4 py-3 text-left font-semibold">
                         파라미터
                       </th>
