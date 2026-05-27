@@ -11,7 +11,7 @@ export async function joinUseCase(
   if (accessToken) {
     const auth = useAuthStore.getState();
     auth.setAccessToken(String(accessToken));
-    auth.setLoginCredentials(request.id, request.pw);
+    auth.setUserId(request.id);
   }
 
   return response;

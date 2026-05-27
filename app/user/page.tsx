@@ -117,7 +117,7 @@ export default function UserPage() {
   const [apiTokenById, setApiTokenById] = useState<Record<number, string>>({});
   const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
-  const setToken = useAuthStore((state)=> state.setAccessToken);
+  const applySession = useAuthStore((state) => state.applySession);
 
   const totalCalls = useMemo(
     () => apiList.reduce((acc, item) => acc + item.count, 0),
@@ -138,7 +138,7 @@ export default function UserPage() {
           return;
         }
         else{
-          setToken(result.accessToken)
+          applySession(result);
         }
       }
       setCheckingSession(false);

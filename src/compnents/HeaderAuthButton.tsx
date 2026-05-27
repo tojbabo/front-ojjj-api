@@ -10,14 +10,14 @@ export default function HeaderAuthButton() {
   const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
-  const setToken = useAuthStore((state)=> state.setAccessToken);
+  const applySession = useAuthStore((state) => state.applySession);
 
   useEffect(() => {
     if(accessToken == null){
       const valider = async ()=>{
         const result = await CheckSessionGetAccessToken();
         if(result != null){
-          setToken(result.accessToken);
+          applySession(result);
         }
       }
       valider();

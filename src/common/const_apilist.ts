@@ -14,7 +14,7 @@ export const apiList: ApiDocument[] = [
     summary: "API 서비스 사용 내역, 용량",
     "API-URL": ":/api/usage",
     parameters: '{id:string, pw:string, serviceid:number, stime:"YYYYMMDDhhmm", etime: "YYYYMMDDhhmm", size:number}',
-    data: "[]",
+    data: "[{serviceId:number, count:number}]",
   },
   {
     id: 1,

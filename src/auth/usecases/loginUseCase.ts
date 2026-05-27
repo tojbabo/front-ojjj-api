@@ -14,7 +14,7 @@ export async function loginUseCase(
   if (accessToken) {
     const auth = useAuthStore.getState();
     auth.setAccessToken(String(accessToken));
-    auth.setLoginCredentials(request.id, request.pw);
+    auth.setUserId(request.id);
     return 1;
 }
 

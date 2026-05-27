@@ -1,32 +1,54 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useEffect, useState } from "react";
+import { parseSessionPayload } from "@/src/auth/lib/parseSessionPayload";
 
 type AuthState = {
   accessToken: string | null;
-  loginId: string | null;
-  loginPw: string | null;
+  userId: string | null;
   setAccessToken: (token: string | null) => void;
-  setLoginCredentials: (id: string, pw: string) => void;
+  setUserId: (userId: string) => void;
+  applySession: (payload: unknown) => boolean;
   clearAccessToken: () => void;
+};
+
+type PersistedAuthState = {
+  accessToken: string | null;
+  userId: string | null;
+  loginId?: string | null;
 };
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       accessToken: null,
-      loginId: null,
-      loginPw: null,
+      userId: null,
       setAccessToken: (token) => set({ accessToken: token }),
-      setLoginCredentials: (id, pw) => set({ loginId: id, loginPw: pw }),
-      clearAccessToken: () => set({ accessToken: null, loginId: null, loginPw: null }),
+      setUserId: (userId) => set({ userId: userId.trim() || null }),
+      applySession: (payload) => {
+        const session = parseSessionPayload(payload);
+        if (!session) return false;
+        set({
+          accessToken: session.accessToken,
+          userId: session.userId || null,
+        });
+        return true;
+      },
+      clearAccessToken: () => set({ accessToken: null, userId: null }),
     }),
     {
       name: "auth",
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as PersistedAuthState;
+        return {
+          accessToken: state.accessToken ?? null,
+          userId: state.userId ?? state.loginId ?? null,
+        };
+      },
       partialize: (state) => ({
         accessToken: state.accessToken,
-        loginId: state.loginId,
-        loginPw: state.loginPw,
+        userId: state.userId,
       }),
     },
   ),
@@ -43,16 +65,6 @@ export function useAuthHydrated() {
   return hydrated;
 }
 
-export function getLoginCredentialsFromStore(): LoginCredentials {
-  const { loginId, loginPw } = useAuthStore.getState();
-  return {
-    id: loginId?.trim() ?? "",
-    pw: loginPw ?? "",
-  };
+export function getAutoFillUserIdFromStore(): string {
+  return useAuthStore.getState().userId?.trim() ?? "";
 }
-
-type LoginCredentials = {
-  id: string;
-  pw: string;
-};
-

@@ -1,11 +1,7 @@
 "use client";
 
 import { apiList, ApiDocument } from "@/src/common/const_apilist";
-import {
-  getLoginCredentialsFromStore,
-  useAuthHydrated,
-  useAuthStore,
-} from "@/src/auth/store/authStore";
+import { getAutoFillUserIdFromStore, useAuthHydrated, useAuthStore } from "@/src/auth/store/authStore";
 import { useEffect, useMemo, useState } from "react";
 import { RequestUsage, RequestWindowProcs } from "../api/userApi";
 import { GetKeysFromDictString, GetTodayyyymmdd, UnknownToNumber } from "@/src/common/utils";
@@ -191,15 +187,10 @@ const FormatToyyyymmdd = (value: string): string => {
 };
 
 
-type LoginCredentials = {
-  id?: string;
-  pw?: string;
-};
-
 const getDefaultParameterValuesForApi = (
   api?: ApiDocument,
   savedTokenByApiId?: Record<number, string>,
-  credentials?: LoginCredentials,
+  autoFillUserId?: string,
 ): ParamMap => {
   const keys = GetKeysFromDictString(api?.parameters ?? "");
   const rawSaved = api != null ? savedTokenByApiId?.[api.id] : undefined;
@@ -208,8 +199,8 @@ const getDefaultParameterValuesForApi = (
   if (api?.title === "use-amount" || api?.id === 0) {
     const today = GetTodayyyymmdd();
     return {
-      id: credentials?.id?.trim() ?? "",
-      pw: credentials?.pw ?? "",
+      id: autoFillUserId?.trim() ?? "",
+      pw: "",
       serviceid: "1",
       stime: `${today}0000`,
       etime: `${today}2359`,
@@ -243,12 +234,7 @@ type ApiExampleSectionProps = {
 
 export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionProps) {
   const authHydrated = useAuthHydrated();
-  const loginId = useAuthStore((state) => state.loginId);
-  const loginPw = useAuthStore((state) => state.loginPw);
-  const loginCredentials = useMemo<LoginCredentials>(
-    () => getLoginCredentialsFromStore(),
-    [loginId, loginPw],
-  );
+  const userId = useAuthStore((state) => state.userId);
 
   const [selectedApiId, setSelectedApiId] = useState<number>(apiList[0]?.id ?? 0);
   const [requestState, setRequestState] = useState<RequestState>("idle");
@@ -269,7 +255,7 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
   );
 
   const [parameterValues, setParameterValues] = useState<ParamMap>(() =>
-    getDefaultParameterValuesForApi(apiList[0], tokenByApiId, getLoginCredentialsFromStore()),
+    getDefaultParameterValuesForApi(apiList[0], tokenByApiId, getAutoFillUserIdFromStore()),
   );
 
   const isWindowsUsageApi = selectedApi?.title === "windows-usage";
@@ -282,7 +268,7 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
     const nextApi = apiList.find((item) => item.id === nextApiId);
     setSelectedApiId(nextApiId);
     setParameterValues(
-      getDefaultParameterValuesForApi(nextApi, tokenByApiId, getLoginCredentialsFromStore()),
+      getDefaultParameterValuesForApi(nextApi, tokenByApiId, getAutoFillUserIdFromStore()),
     );
     setResponseRows([]);
     setRequestState("idle");
@@ -292,9 +278,9 @@ export default function ApiExampleSection({ tokenByApiId }: ApiExampleSectionPro
   useEffect(() => {
     if (!authHydrated || !isUseAmountApi) return;
     setParameterValues(
-      getDefaultParameterValuesForApi(selectedApi, tokenByApiId, getLoginCredentialsFromStore()),
+      getDefaultParameterValuesForApi(selectedApi, tokenByApiId, getAutoFillUserIdFromStore()),
     );
-  }, [authHydrated, isUseAmountApi, selectedApiId, loginId, loginPw, selectedApi]);
+  }, [authHydrated, isUseAmountApi, selectedApiId, userId, selectedApi]);
 
   useEffect(() => {
     if (!parameterKeys.includes("token")) return;
