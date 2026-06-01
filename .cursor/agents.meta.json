@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "project": "front-ojjj-api",
+  "description": "역할별 Agent 매핑, 활성화 조건, 예시 데이터",
+  "roles": [
+    {
+      "id": "auth",
+      "label": "인증·세션",
+      "agentId": "auth-agent",
+      "agentFile": ".cursor/agents/auth-agent.md",
+      "conditions": {
+        "summary": "로그인/회원가입, 세션 파싱, 쿠키·미들웨어, authStore 변경 시",
+        "globs": [
+          "src/auth/**",
+          "middleware.ts",
+          "app/login/**",
+          "src/compnents/loginform.tsx",
+          "src/compnents/signupform.tsx",
+          "src/compnents/HeaderAuthButton.tsx"
+        ],
+        "routes": ["/login", "/login/join"],
+        "protectedRoutes": ["/user", "/user/*"],
+        "keywords": [
+          "accessToken",
+          "refreshToken",
+          "authStore",
+          "parseSessionPayload",
+          "로그인",
+          "회원가입",
+          "세션"
+        ]
+      },
+      "examples": {
+        "tasks": [
+          "로그인 API 응답을 parseSessionPayload로 정규화해 authStore에 반영한다",
+          "middleware에서 refreshToken 쿠키 없으면 /login?next=... 로 리다이렉트한다",
+          "로그아웃 시 accessToken·userId를 clear하고 persist를 비운다"
+        ],
+        "fixtures": {
+          "sessionPayloadObject": {
+            "userId": "demo_user",
+            "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo"
+          },
+          "sessionPayloadTuple": ["demo_user", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo"],
+          "loginForm": {
+            "id": "demo_user",
+            "pw": "demo_password"
+          },
+          "cookies": {
+            "refreshToken": "refresh_cookie_value",
+            "accessToken": "access_cookie_value"
+          }
+        }
+      }
+    },
+    {
+      "id": "api-catalog",
+      "label": "API 카탈로그·문서",
+      "agentId": "api-catalog-agent",
+      "agentFile": ".cursor/agents/api-catalog-agent.md",
+      "conditions": {
+        "summary": "apiList/ApiDocument 정의, 문서 페이지, API 메타 필드 추가·수정 시",
+        "globs": [
+          "src/common/const_apilist.ts",
+          "app/document/**",
+          "src/common/types.ts"
+        ],
+        "routes": ["/document"],
+        "keywords": [
+          "apiList",
+          "ApiDocument",
+          "API-URL",
+          "parameters",
+          "summary",
+          "문서"
+        ]
+      },
+      "examples": {
+        "tasks": [
+          "const_apilist.ts에 API 항목을 추가하면 document 페이지 테이블에도 동일 필드를 노출한다",
+          "parameters/data 문자열은 타입 힌트용 설명이며 런타임 검증은 하지 않는다"
+        ],
+        "fixtures": {
+          "apiDocument": {
+            "id": 2,
+            "title": "sample-endpoint",
+            "summary": "예시용 엔드포인트",
+            "API-URL": ":/api/sample",
+            "parameters": "{token:string, limit:number}",
+            "data": "{items: string[]}"
+          },
+          "existingApis": [
+            {
+              "id": 0,
+              "title": "use-amount",
+              "note": "기본 서비스 — 토큰 없음, id/pw 기반"
+            },
+            {
+              "id": 1,
+              "title": "windows-usage",
+              "note": "token 필수"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "user-workbench",
+      "label": "사용자 API 워크벤치",
+      "agentId": "user-workbench-agent",
+      "agentFile": ".cursor/agents/user-workbench-agent.md",
+      "conditions": {
+        "summary": "API 신청/반납, 예시 호출, 파라미터 기본값, user API 연동 시",
+        "globs": [
+          "src/user/**",
+          "app/user/**",
+          "src/common/const_.ts",
+          "src/common/utils.ts"
+        ],
+        "routes": ["/user"],
+        "keywords": [
+          "ApiRequestSection",
+          "ApiExampleSection",
+          "tokenByApiId",
+          "REQ_APILIST",
+          "use-amount",
+          "windows-usage",
+          "기본 서비스"
+        ]
+      },
+      "examples": {
+        "tasks": [
+          "id 0(use-amount) 선택 시 serviceid=1, 오늘 0000~2359, size=100 기본값을 채운다",
+          "id 0 서비스는 신청/반납 버튼 비활성, 토큰란에 '기본 서비스' 표시",
+          "pw 입력란은 type=password로 마스킹한다"
+        ],
+        "fixtures": {
+          "useAmountDefaults": {
+            "serviceid": "1",
+            "stime": "202606020000",
+            "etime": "202606022359",
+            "size": "100",
+            "id": "demo_user",
+            "pw": "••••••••"
+          },
+          "tokenByApiId": {
+            "0": "",
+            "1": "win_usage_token_abc123"
+          },
+          "requestApiItem": {
+            "id": 1,
+            "name": "windows-usage",
+            "description": "주인장의 윈도우 주요 프로그램 사용 시간",
+            "tokenKey": "win_usage_token_abc123"
+          }
+        }
+      }
+    },
+    {
+      "id": "ui-shell",
+      "label": "UI·레이아웃",
+      "agentId": "ui-shell-agent",
+      "agentFile": ".cursor/agents/ui-shell-agent.md",
+      "conditions": {
+        "summary": "홈/레이아웃, Tailwind 스타일, 공통 컴포넌트, 랜딩·네비게이션 변경 시",
+        "globs": [
+          "app/layout.tsx",
+          "app/page.tsx",
+          "app/globals.css",
+          "src/compnents/**",
+          "postcss.config.mjs"
+        ],
+        "routes": ["/"],
+        "keywords": [
+          "layout",
+          "globals.css",
+          "brand",
+          "tailwind",
+          "HeaderAuthButton"
+        ]
+      },
+      "examples": {
+        "tasks": [
+          "브랜드 컬러는 CSS 변수 --brand, --brand-weak를 사용한다",
+          "헤더 네비는 document / user / login 링크 패턴을 유지한다"
+        ],
+        "fixtures": {
+          "cssVariables": {
+            "--brand": "#2563eb",
+            "--brand-weak": "color-mix(in srgb, var(--brand) 12%, transparent)"
+          },
+          "navLinks": [
+            { "href": "/document", "label": "문서" },
+            { "href": "/user", "label": "내 API" },
+            { "href": "/login", "label": "로그인" }
+          ]
+        }
+      }
+    }
+  ],
+  "routing": {
+    "defaultAgentId": "ui-shell-agent",
+    "rules": [
+      {
+        "when": { "anyGlob": ["src/auth/**", "middleware.ts"] },
+        "useRole": "auth"
+      },
+      {
+        "when": { "anyGlob": ["src/common/const_apilist.ts", "app/document/**"] },
+        "useRole": "api-catalog"
+      },
+      {
+        "when": { "anyGlob": ["src/user/**", "app/user/**"] },
+        "useRole": "user-workbench"
+      },
+      {
+        "when": { "anyGlob": ["app/layout.tsx", "app/page.tsx", "app/globals.css"] },
+        "useRole": "ui-shell"
+      }
+    ]
+  }
+}
