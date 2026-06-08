@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import LoginPage from "@/src/compnents/loginform";
+import LoginPage from "@/src/components/loginform";
 function CheckIcon() {
   return (
     <span

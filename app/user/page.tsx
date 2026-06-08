@@ -10,6 +10,7 @@ import {
   buildTokenByApiIdFromList,
   RequestAPIServiceTokenList,
 } from "@/src/user/api/userApi";
+import ApiUsageSection from "@/src/user/components/ApiUsageSection";
 
 type UserTab = "status" | "requests" | "usage" | "example";
 
@@ -332,6 +333,8 @@ export default function UserPage() {
                 <div className="mt-1 text-xl font-semibold">98.9%</div>
               </div>
             </div>
+            
+            <ApiUsageSection />
           </div>
         ) : null}
 

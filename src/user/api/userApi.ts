@@ -114,7 +114,11 @@ export async function RequestWindowProcs(params:Record<string,string>): Promise<
       return payload;
 }
 
-
+/**
+ * api: user별 서비스 사용량 리스트 요청
+ * @param params 
+ * @returns 
+ */
 export async function RequestUsage(params:Record<string,string>): Promise<any>{
   const endpoint = `${API_BASE_URL}/api/usage`;
       const res = await fetch(endpoint, {
@@ -128,5 +132,28 @@ export async function RequestUsage(params:Record<string,string>): Promise<any>{
         const message = (typeof payload?.message === "string" && payload.message) || "요청 처리에 실패했습니다.";
         throw new Error(message);
       }
+      return payload;
+}
+
+/**
+ * api: user별 서비스 사용량 총합 요청
+ * @param params 
+ */
+export async function RequestUsageTotal(accessToken:string): Promise<any>{
+  const endpoint = `${API_BASE_URL}/user/totalusage`;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { 
+          'Authorization': `Bearer ${accessToken}`,
+          "Content-Type": "application/json" 
+        }
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message = (typeof payload?.message === "string" && payload.message) || "요청 처리에 실패했습니다.";
+        throw new Error(message);
+      }
+
       return payload;
 }
