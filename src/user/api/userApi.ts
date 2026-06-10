@@ -155,5 +155,5 @@ export async function RequestUsageTotal(accessToken:string): Promise<any>{
         throw new Error(message);
       }
 
-      return payload;
+      return payload.usage;
 }
