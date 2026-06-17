@@ -313,30 +313,7 @@ export default function UserPage() {
           <ApiRequestSection tokenByApiId={apiTokenById} setTokenByApiId={setApiTokenById} />
         ) : null}
 
-        {activeTab === "usage" ? (
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm md:p-6">
-            <h2 className="text-lg font-semibold">상세 사용량</h2>
-            <p className="mt-1 text-sm text-muted">
-              시간대/엔드포인트별 상세 사용량 영역입니다.
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-background p-4">
-                <div className="text-xs text-muted">오늘 총 요청</div>
-                <div className="mt-1 text-xl font-semibold">{totalCalls}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-background p-4">
-                <div className="text-xs text-muted">가장 많이 호출</div>
-                <div className="mt-1 text-xl font-semibold">GET /api/user/me</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-background p-4">
-                <div className="text-xs text-muted">평균 성공률</div>
-                <div className="mt-1 text-xl font-semibold">98.9%</div>
-              </div>
-            </div>
-            
-            <ApiUsageSection />
-          </div>
-        ) : null}
+        {activeTab === "usage" ? <ApiUsageSection /> : null}
 
         {activeTab === "example" ? (
           <ApiExampleSection tokenByApiId={apiTokenById} />
