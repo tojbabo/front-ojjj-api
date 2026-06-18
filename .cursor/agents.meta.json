@@ -196,6 +196,46 @@
           ]
         }
       }
+    },
+    {
+      "id": "designer",  
+      "label": "UI 디자이너", 
+      "agentId": "designer-agent", 
+      "agentFile": ".cursor/agents/designer-agent.md", 
+      "conditions": {
+        "summary": "UI 디자인. 기본 레이아웃 구성, 컴포넌트 설정, 터치 액션 추가 ",
+        "globs": [
+          "src/app/**",
+          "app/**/*.tsx"
+        ],
+        "keywords": [
+          "UI",
+          "design",
+          "디자인"
+        ]
+      },
+      "examples": {
+        "tasks": [
+          "middleware에서 refreshToken 쿠키 없으면 /login?next=... 로 리다이렉트한다",
+          "로그아웃 시 accessToken·userId를 clear하고 persist를 비운다"
+        ],
+        "fixtures": {
+          "sessionPayloadObject": {
+            "userId": "demo_user",
+            "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo"
+          },
+          "sessionPayloadTuple": ["demo_user", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo"],
+          "loginForm": {
+            "id": "demo_user",
+            "pw": "demo_password"
+          },
+          "cookies": {
+            "refreshToken": "refresh_cookie_value",
+            "accessToken": "access_cookie_value"
+          }
+        }
+      }
+
     }
   ],
   "routing": {
