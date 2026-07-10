@@ -13,9 +13,11 @@ export default function HeaderAuthButton() {
   const applySession = useAuthStore((state) => state.applySession);
 
   useEffect(() => {
+    console.log("accessToken", accessToken);
     if(accessToken == null){
       const valider = async ()=>{
         const result = await CheckSessionGetAccessToken();
+        console.log("result", result);
         if(result != null){
           applySession(result);
         }
@@ -30,7 +32,7 @@ export default function HeaderAuthButton() {
     router.replace("/");
   };
 
-  if (!accessToken) {
+  if (accessToken != null) {
     return (
       <Link
         className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"
