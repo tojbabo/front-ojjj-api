@@ -2,24 +2,25 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RequestLogout, CheckSessionGetAccessToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 export default function HeaderAuthButton() {
   const router = useRouter();
-  const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const applySession = useAuthStore((state) => state.applySession);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+    
 
   useEffect(() => {
-    console.log("accessToken", accessToken);
     if(accessToken == null){
       const valider = async ()=>{
         const result = await CheckSessionGetAccessToken();
-        console.log("result", result);
         if(result != null){
-          applySession(result);
+          const res = await applySession(result);
+          if(res) setAccessToken(result["accessToken"]);
+          
         }
       }
       valider();
@@ -32,7 +33,7 @@ export default function HeaderAuthButton() {
     router.replace("/");
   };
 
-  if (accessToken != null) {
+  if (accessToken == null) {
     return (
       <Link
         className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"

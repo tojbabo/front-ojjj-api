@@ -99,7 +99,7 @@ export async function RequestLogout(): Promise<void> {
 /**
  * Session 확인 후 RefreshToken을 확인. 유효한 경우 [userId, accessToken] 또는 동일 필드 객체 반환
  */
-export async function CheckSessionGetAccessToken(): Promise<unknown> {
+export async function CheckSessionGetAccessToken(): Promise<null | Record<string,any>> {
   const res = await fetch(`${API_BASE_URL}${PATH_CHECK_TOKEN}`, {
     method: "POST",
     credentials: "include",
