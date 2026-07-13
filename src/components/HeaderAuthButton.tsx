@@ -11,16 +11,19 @@ export default function HeaderAuthButton() {
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const applySession = useAuthStore((state) => state.applySession);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-    
 
+  const temptoken = useAuthStore.getState().accessToken;
+  
   useEffect(() => {
-    if(accessToken == null){
+    if(temptoken != null){
+      setAccessToken(temptoken);
+    }
+    else{
       const valider = async ()=>{
-        const result = await CheckSessionGetAccessToken();
-        if(result != null){
-          const res = await applySession(result);
-          if(res) setAccessToken(result["accessToken"]);
-          
+        const newtoken = await CheckSessionGetAccessToken();
+        if(newtoken != null){
+          const res = await applySession(newtoken);
+          if(res) setAccessToken(newtoken["accessToken"]);
         }
       }
       valider();

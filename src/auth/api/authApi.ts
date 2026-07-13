@@ -90,7 +90,7 @@ export async function RequestJoin(request: {id:string, pw:string}): Promise<Join
  * 로그아웃 요청
  */
 export async function RequestLogout(): Promise<void> {
-  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+  await fetch(`${API_BASE_URL}/auth/logout`, {
     method: "POST",
     credentials: "include",
   }).catch(() => undefined);
