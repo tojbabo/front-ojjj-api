@@ -2,33 +2,33 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { RequestLogout, CheckSessionGetAccessToken } from "@/src/auth/api/authApi";
 import { useAuthStore } from "@/src/auth/store/authStore";
 
 export default function HeaderAuthButton() {
   const router = useRouter();
+  const accessToken = useAuthStore((state) => state.accessToken);
   const clearAccessToken = useAuthStore((state) => state.clearAccessToken);
   const applySession = useAuthStore((state) => state.applySession);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const temptoken = useAuthStore.getState().accessToken;
-  
   useEffect(() => {
-    if(temptoken != null){
-      setAccessToken(temptoken);
-    }
-    else{
-      const valider = async ()=>{
-        const newtoken = await CheckSessionGetAccessToken();
-        if(newtoken != null){
-          const res = await applySession(newtoken);
-          if(res) setAccessToken(newtoken["accessToken"]);
-        }
-      }
-      valider();
-    }
-  }, []);
+    if (accessToken != null) return;
+
+    let mounted = true;
+
+    const validateSession = async () => {
+      const session = await CheckSessionGetAccessToken();
+      if (!mounted || session == null) return;
+      applySession(session);
+    };
+
+    void validateSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [accessToken, applySession]);
 
   const logout = async () => {
     await RequestLogout();
